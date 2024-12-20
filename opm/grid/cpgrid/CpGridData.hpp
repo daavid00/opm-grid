@@ -507,7 +507,7 @@ private:
     Geometry<3,3> cellifyPatch(const std::array<int,3>& startIJK, const std::array<int,3>& endIJK,
                                const std::vector<int>& patch_cells, DefaultGeometryPolicy& cellifiedPatch_geometry,
                                std::array<int,8>& cellifiedPatch_to_point,
-                               std::array<int,8>& allcorners_cellifiedPatch) const;
+                               std::array<std::size_t,8>& allcorners_cellifiedPatch) const;
 
     // @brief Compute the average of array<double,3>.
     //
@@ -829,7 +829,7 @@ private:
                          DefaultGeometryPolicy& geometry,
                          std::vector<int>& aquiferCells,
                          const OrientedEntityTable<0, 1>& cell2Faces,
-                         const std::vector< std::array<int,8> >& cell2Points);
+                         const std::vector< std::array<std::size_t,8> >& cell2Points);
 
     // Representing the topology
     /** @brief Container for lookup of the faces attached to each cell. */
@@ -845,7 +845,7 @@ private:
     /** @brief Container for the lookup of the points for each face. */
     Opm::SparseTable<int>             face_to_point_;
     /** @brief Vector that contains an arrays of the points of each cell*/
-    std::vector< std::array<int,8> >       cell_to_point_;
+    std::vector< std::array<std::size_t,8> >       cell_to_point_;
     /** @brief The size of the underlying logical cartesian grid.
      *
      * In a Eclipse a cornerpoint grid has the same number of cells

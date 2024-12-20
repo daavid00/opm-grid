@@ -799,7 +799,7 @@ namespace Dune
 
         /// @brief Define the cells, cell_to_point_, global_cell_, cell_to_face_, face_to_cell_, for each refined level grid.
         void populateRefinedCells(std::vector<Dune::cpgrid::EntityVariableBase<cpgrid::Geometry<3,3>>>& refined_cells_vec,
-                                  std::vector<std::vector<std::array<int,8>>>& refined_cell_to_point_vec,
+                                  std::vector<std::vector<std::array<std::size_t,8>>>& refined_cell_to_point_vec,
                                   std::vector<std::vector<int>>& refined_global_cell_vec,
                                   const std::vector<int>& refined_cell_count_vec,
                                   std::vector<cpgrid::OrientedEntityTable<0,1>>& refined_cell_to_face_vec,
@@ -829,7 +829,7 @@ namespace Dune
                                              const std::vector<int>& refined_face_count_vec,
                                              /* Refined cell argumets */
                                              std::vector<Dune::cpgrid::EntityVariableBase<cpgrid::Geometry<3,3>>>& refined_cells_vec,
-                                             std::vector<std::vector<std::array<int,8>>>& refined_cell_to_point_vec,
+                                             std::vector<std::vector<std::array<std::size_t,8>>>& refined_cell_to_point_vec,
                                              std::vector<std::vector<int>>& refined_global_cell_vec,
                                              std::vector<int>& refined_cell_count_vec,
                                              std::vector<cpgrid::OrientedEntityTable<0,1>>& refined_cell_to_face_vec,
@@ -874,7 +874,7 @@ namespace Dune
 
         /// @brief Define the cells, cell_to_point_, cell_to_face_, face_to_cell_, for the leaf grid view (or adapted grid).
         void populateLeafGridCells(Dune::cpgrid::EntityVariableBase<cpgrid::Geometry<3,3>>& adapted_cells,
-                                   std::vector<std::array<int,8>>& adapted_cell_to_point,
+                                   std::vector<std::array<std::size_t,8>>& adapted_cell_to_point,
                                    const int& cell_count,
                                    cpgrid::OrientedEntityTable<0,1>& adapted_cell_to_face,
                                    cpgrid::OrientedEntityTable<1,0>& adapted_face_to_cell,
@@ -903,7 +903,7 @@ namespace Dune
                                            const int& face_count,
                                            /* Leaf grid View Cells argumemts  */
                                            Dune::cpgrid::EntityVariableBase<cpgrid::Geometry<3,3>>& adapted_cells,
-                                           std::vector<std::array<int,8>>& adapted_cell_to_point,
+                                           std::vector<std::array<std::size_t,8>>& adapted_cell_to_point,
                                            const int& cell_count,
                                            cpgrid::OrientedEntityTable<0,1>& adapted_cell_to_face,
                                            cpgrid::OrientedEntityTable<1,0>& adapted_face_to_cell,

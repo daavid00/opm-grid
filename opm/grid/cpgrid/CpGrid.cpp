@@ -1411,7 +1411,7 @@ void CpGrid::selectWinnerPointIds([[maybe_unused]] std::vector<std::vector<int>>
 {
 #if HAVE_MPI
     // To store cell_to_point_ information of all refined level grids.
-    std::vector<std::vector<std::array<int,8>>> level_cell_to_point(cells_per_dim_vec.size());
+    std::vector<std::vector<std::array<std::size_t,8>>> level_cell_to_point(cells_per_dim_vec.size());
     // To decide which "candidate" point global id wins, the rank is stored. The smallest ranks wins,
     // i.e., the other non-selected candidates get rewritten with the values from the smallest (winner) rank.
     std::vector<std::vector<int>> level_winning_ranks(cells_per_dim_vec.size());
@@ -2010,7 +2010,7 @@ bool CpGrid::adapt(const std::vector<std::array<int,3>>& cells_per_dim_vec,
     std::vector<std::shared_ptr<Dune::cpgrid::CpGridData>> refined_grid_ptr_vec(levels);
 
     std::vector<Dune::cpgrid::DefaultGeometryPolicy> refined_geometries_vec(levels);
-    std::vector<std::vector<std::array<int,8>>> refined_cell_to_point_vec(levels);
+    std::vector<std::vector<std::array<std::size_t,8>>> refined_cell_to_point_vec(levels);
     std::vector<cpgrid::OrientedEntityTable<0,1>> refined_cell_to_face_vec(levels);
     std::vector<Opm::SparseTable<int>> refined_face_to_point_vec(levels);
     std::vector<cpgrid::OrientedEntityTable<1,0>> refined_face_to_cell_vec(levels);
@@ -2039,7 +2039,7 @@ bool CpGrid::adapt(const std::vector<std::array<int,3>>& cells_per_dim_vec,
 #endif
     auto& adaptedGrid = *adaptedGrid_ptr;
     Dune::cpgrid::DefaultGeometryPolicy&                         adapted_geometries = adaptedGrid.geometry_;
-    std::vector<std::array<int,8>>&                              adapted_cell_to_point = adaptedGrid.cell_to_point_;
+    std::vector<std::array<std::size_t,8>>&                      adapted_cell_to_point = adaptedGrid.cell_to_point_;
     cpgrid::OrientedEntityTable<0,1>&                            adapted_cell_to_face = adaptedGrid.cell_to_face_;
     Opm::SparseTable<int>&                                       adapted_face_to_point = adaptedGrid.face_to_point_;
     cpgrid::OrientedEntityTable<1,0>&                            adapted_face_to_cell = adaptedGrid.face_to_cell_;
@@ -3528,7 +3528,7 @@ void CpGrid::populateRefinedFaces(std::vector<Dune::cpgrid::EntityVariableBase<c
 }
 
 void CpGrid::populateLeafGridCells(Dune::cpgrid::EntityVariableBase<cpgrid::Geometry<3,3>>& adapted_cells,
-                                   std::vector<std::array<int,8>>& adapted_cell_to_point,
+                                   std::vector<std::array<std::size_t,8>>& adapted_cell_to_point,
                                    const int& cell_count,
                                    cpgrid::OrientedEntityTable<0,1>& adapted_cell_to_face,
                                    cpgrid::OrientedEntityTable<1,0>& adapted_face_to_cell,
@@ -3650,7 +3650,7 @@ void CpGrid::populateLeafGridCells(Dune::cpgrid::EntityVariableBase<cpgrid::Geom
         adapted_cell_to_face.appendRow(aux_cell_to_face.begin(), aux_cell_to_face.end());
 
         // Create a pointer to the first element of "adapted_cell_to_point" (required as the fourth argement to construct a Geometry<3,3> type object).
-        int* indices_storage_ptr = adapted_cell_to_point[cell].data();
+        std::size_t* indices_storage_ptr = adapted_cell_to_point[cell].data();
         adapted_cells[cell] = cpgrid::Geometry<3,3>(cellGeom.center(), cellGeom.volume(), allCorners, indices_storage_ptr);
     } // adapted_cells
 
@@ -3660,7 +3660,7 @@ void CpGrid::populateLeafGridCells(Dune::cpgrid::EntityVariableBase<cpgrid::Geom
 
 
 void CpGrid::populateRefinedCells(std::vector<Dune::cpgrid::EntityVariableBase<cpgrid::Geometry<3,3>>>& refined_cells_vec,
-                                  std::vector<std::vector<std::array<int,8>>>& refined_cell_to_point_vec,
+                                  std::vector<std::vector<std::array<std::size_t,8>>>& refined_cell_to_point_vec,
                                   std::vector<std::vector<int>>& refined_global_cell_vec,
                                   const std::vector<int>& refined_cell_count_vec,
                                   std::vector<cpgrid::OrientedEntityTable<0,1>>& refined_cell_to_face_vec,
@@ -3770,7 +3770,7 @@ void CpGrid::populateRefinedCells(std::vector<Dune::cpgrid::EntityVariableBase<c
             const auto& elemLgrGeom =  (*( markedElem_to_itsLgr.at(elemLgr)->geometry_.geomVector(std::integral_constant<int,0>())))[elemLgrCellEntity];
 
             // Create a pointer to the first element of "refined_cell_to_point" (required as the fourth argement to construct a Geometry<3,3> type object).
-            int* indices_storage_ptr = refined_cell_to_point_vec[shiftedLevel][cell].data();
+            std::size_t* indices_storage_ptr = refined_cell_to_point_vec[shiftedLevel][cell].data();
             refined_cells_vec[shiftedLevel][cell] = cpgrid::Geometry<3,3>(elemLgrGeom.center(), elemLgrGeom.volume(), allLevelCorners, indices_storage_ptr);
         } // refined_cells
         // Refined face to cell.
@@ -3789,7 +3789,7 @@ void CpGrid::setRefinedLevelGridsGeometries( /* Refined corner arguments */
                                              const std::vector<int>& refined_face_count_vec,
                                              /* Refined cell argumets */
                                              std::vector<Dune::cpgrid::EntityVariableBase<cpgrid::Geometry<3,3>>>& refined_cells_vec,
-                                             std::vector<std::vector<std::array<int,8>>>& refined_cell_to_point_vec,
+                                             std::vector<std::vector<std::array<std::size_t,8>>>& refined_cell_to_point_vec,
                                              std::vector<std::vector<int>>& refined_global_cell_vec,
                                              std::vector<int>& refined_cell_count_vec,
                                              std::vector<cpgrid::OrientedEntityTable<0,1>>& refined_cell_to_face_vec,
@@ -3862,7 +3862,7 @@ void CpGrid::updateLeafGridViewGeometries( /* Leaf grid View Corners arguments *
                                            const int& face_count,
                                            /* Leaf grid View Cells argumemts  */
                                            Dune::cpgrid::EntityVariableBase<cpgrid::Geometry<3,3>>& adapted_cells,
-                                           std::vector<std::array<int,8>>& adapted_cell_to_point,
+                                           std::vector<std::array<std::size_t,8>>& adapted_cell_to_point,
                                            const int& cell_count,
                                            cpgrid::OrientedEntityTable<0,1>& adapted_cell_to_face,
                                            cpgrid::OrientedEntityTable<1,0>& adapted_face_to_cell,

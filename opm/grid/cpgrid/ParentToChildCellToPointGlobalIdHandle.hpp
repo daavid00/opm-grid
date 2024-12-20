@@ -66,7 +66,7 @@ struct ParentToChildCellToPointGlobalIdHandle {
     /// \param level_point_global_ids
     ParentToChildCellToPointGlobalIdHandle(const Dune::CpGrid::Communication& comm,
                                            const std::vector<std::tuple<int, std::vector<int>>>& parent_to_children,
-                                           const std::vector<std::vector<std::array<int,8>>>& level_cell_to_point,
+                                           const std::vector<std::vector<std::array<std::size_t,8>>>& level_cell_to_point,
                                            std::vector<std::vector<DataType>>& level_winning_ranks,
                                            std::vector<std::vector<DataType>>& level_point_global_ids)
     : comm_(comm)
@@ -168,7 +168,7 @@ struct ParentToChildCellToPointGlobalIdHandle {
 private:
     const Dune::CpGrid::Communication& comm_;
     const std::vector<std::tuple<int, std::vector<int>>>& parent_to_children_;
-    const std::vector<std::vector<std::array<int,8>>>& level_cell_to_point_;
+    const std::vector<std::vector<std::array<std::size_t,8>>>& level_cell_to_point_;
     std::vector<std::vector<DataType>>& level_winning_ranks_;
     std::vector<std::vector<DataType>>& level_point_global_ids_;
 };

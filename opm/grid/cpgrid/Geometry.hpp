@@ -408,7 +408,7 @@ namespace Dune
             Geometry(const GlobalCoordinate& pos,
                      ctype vol,
                      std::shared_ptr<const EntityVariable<cpgrid::Geometry<0, 3>, 3>> allcorners_ptr,
-                     const int* corner_indices)
+                     const std::size_t* corner_indices)
                 : pos_(pos), vol_(vol),
                   allcorners_(allcorners_ptr), cor_idx_(corner_indices)
             {
@@ -616,7 +616,7 @@ namespace Dune
             typedef Dune::FieldVector<double,3> PointType;
             void refineCellifiedPatch(const std::array<int,3>& cells_per_dim,
                                       DefaultGeometryPolicy& all_geom,
-                                      std::vector<std::array<int,8>>&  refined_cell_to_point,
+                                      std::vector<std::array<std::size_t,8>>&  refined_cell_to_point,
                                       cpgrid::OrientedEntityTable<0,1>& refined_cell_to_face,
                                       Opm::SparseTable<int>& refined_face_to_point,
                                       cpgrid::OrientedEntityTable<1,0>& refined_face_to_cell,
@@ -894,7 +894,7 @@ namespace Dune
                             double refined_cell_volume = 0.0; // (computed below!)
                             // 3. All Global refined corners ("refined_corners")
                             // 4. Indices of the 8 corners of the global refined cell associated with 'kji'.
-                            std::array<int,8> cell_to_point = { //
+                            std::array<std::size_t,8> cell_to_point = { //
                                 (j*(refined_dim[0]+1)*(refined_dim[2]+1))     + (i*(refined_dim[2]+1))      +k, // fake '0' {0,0,0}
                                 (j*(refined_dim[0]+1)*(refined_dim[2]+1))     + ((i+1)*(refined_dim[2]+1))  +k, // fake '1' {1,0,0}
                                 ((j+1)*(refined_dim[0]+1)*(refined_dim[2]+1)) + (i*(refined_dim[2]+1))      +k, // fake '2' {0,1,0}
@@ -1011,7 +1011,7 @@ namespace Dune
                             sum_all_refined_cell_volumes += refined_cell_volume;
                             // Create a pointer to the first element of "refined_cell_to_point"
                             // (required as the fourth argement to construct a Geometry<3,3> type object).
-                            int* indices_storage_ptr = refined_cell_to_point[refined_cell_idx].data();
+                            std::size_t* indices_storage_ptr = refined_cell_to_point[refined_cell_idx].data();
                             // Construct the Geometry of the refined cell associated with 'kji'.
                             refined_cells[refined_cell_idx] =
                                 Geometry<3,cdim>(refined_cell_center,
@@ -1038,7 +1038,7 @@ namespace Dune
             GlobalCoordinate pos_;
             double vol_;
             std::shared_ptr<const EntityVariable<Geometry<0, 3>,3>> allcorners_; // For dimension 3 only
-            const int* cor_idx_; // For dimension 3 only
+            const std::size_t* cor_idx_; // For dimension 3 only
 
             /// @brief
             ///   Auxiliary function to get refined_face information: tag, index, face_to_point_, face_to_cell, face centroid,
