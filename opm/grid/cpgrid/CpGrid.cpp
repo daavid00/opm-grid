@@ -1418,7 +1418,7 @@ void CpGrid::selectWinnerPointIds([[maybe_unused]] std::vector<std::vector<int>>
 
     for (std::size_t level = 1; level < cells_per_dim_vec.size()+1; ++level) {
 
-        level_cell_to_point[level -1] = currentData()[level]->cell_to_point_;
+        level_cell_to_point[level -1] = currentData()[level]->cell_to_point_sk;
         // Set std::numeric_limits<int>::max() to make sure that, during communication, the rank of the interior cell
         // wins (int between 0 and comm().size()).
         level_winning_ranks[level-1].resize(currentData()[level]->size(3), std::numeric_limits<int>::max());
@@ -1426,7 +1426,7 @@ void CpGrid::selectWinnerPointIds([[maybe_unused]] std::vector<std::vector<int>>
         for (const auto& element : elements(levelGridView(level))) {
             // For interior cells, rewrite the rank value - later used in "point global id competition".
             if (element.partitionType() == InteriorEntity) {
-                for (const auto& corner : currentData()[level]->cell_to_point_[element.index()]){
+                for (const auto& corner : currentData()[level]->cell_to_point_sk[element.index()]){
                     int rank = comm().rank();
                     level_winning_ranks[level -1][corner] = rank;
                 }
@@ -1572,7 +1572,7 @@ void CpGrid::populateLeafGlobalIdSet()
         leafPointIds[point.index()] = (*current_data_)[level_pointLevelIdx[0]]->global_id_set_->id(pointLevelEntity);
     }
 
-    current_data_->back()->global_id_set_->swap(leafCellIds, leafFaceIds, leafPointIds);
+    //current_data_->back()->global_id_set_->swap(leafCellIds, leafFaceIds, leafPointIds);
 }
 
 double CpGrid::cellCenterDepth(int cell_index) const
@@ -2039,7 +2039,7 @@ bool CpGrid::adapt(const std::vector<std::array<int,3>>& cells_per_dim_vec,
 #endif
     auto& adaptedGrid = *adaptedGrid_ptr;
     Dune::cpgrid::DefaultGeometryPolicy&                         adapted_geometries = adaptedGrid.geometry_;
-    std::vector<std::array<int,8>>&                              adapted_cell_to_point = adaptedGrid.cell_to_point_;
+    std::vector<std::array<int,8>>&                              adapted_cell_to_point = adaptedGrid.cell_to_point_sk;
     cpgrid::OrientedEntityTable<0,1>&                            adapted_cell_to_face = adaptedGrid.cell_to_face_;
     Opm::SparseTable<int>&                                       adapted_face_to_point = adaptedGrid.face_to_point_sk;
     cpgrid::OrientedEntityTable<1,0>&                            adapted_face_to_cell = adaptedGrid.face_to_cell_;
@@ -2335,7 +2335,7 @@ bool CpGrid::adapt(const std::vector<std::array<int,3>>& cells_per_dim_vec,
         level_faces.swap(refined_faces_vec[level]);
         level_cells.swap(refined_cells_vec[level]);
 
-        (*data[refinedLevelGridIdx]).cell_to_point_.swap(refined_cell_to_point_vec[level]);
+        //(*data[refinedLevelGridIdx]).cell_to_point_.swap(refined_cell_to_point_vec[level]);
         (*data[refinedLevelGridIdx]).cell_to_face_.swap(refined_cell_to_face_vec[level]);
 
         (*data[refinedLevelGridIdx]).face_to_point_sk.swap(refined_face_to_point_vec[level]);
@@ -2514,15 +2514,15 @@ bool CpGrid::adapt(const std::vector<std::array<int,3>>& cells_per_dim_vec,
                              parent_to_children,
                              cells_per_dim_vec);
 
-        for (std::size_t level = 1; level < cells_per_dim_vec.size()+1; ++level) {
-            // Global id set for each (refined) level grid.
-            if(lgr_with_at_least_one_active_cell[level-1]>0) { // Check if LGR is active in currect process.
-                (*current_data_)[level]->global_id_set_->swap(localToGlobal_cells_per_level[level-1],
-                                                              localToGlobal_faces_per_level[level-1],
-                                                              localToGlobal_points_per_level[level-1]);
-            }
-        }
-
+        // for (std::size_t level = 1; level < cells_per_dim_vec.size()+1; ++level) {
+        //     // Global id set for each (refined) level grid.
+        //     if(lgr_with_at_least_one_active_cell[level-1]>0) { // Check if LGR is active in currect process.
+        //         (*current_data_)[level]->global_id_set_->swap(localToGlobal_cells_per_level[level-1],
+        //                                                       localToGlobal_faces_per_level[level-1],
+        //                                                       localToGlobal_points_per_level[level-1]);
+        //     }
+        // }
+        std::cout<<"MEDIO"<< std::endl;
         for (std::size_t level = 1; level < cells_per_dim_vec.size()+1; ++level) {
             
             populateCellIndexSetRefinedGrid(level);
@@ -2533,6 +2533,7 @@ bool CpGrid::adapt(const std::vector<std::array<int,3>>& cells_per_dim_vec,
             // Now we can compute the communication interface.
             currentData()[level]->computeCommunicationInterfaces(currentData()[level]->size(3));
         }
+        std::cout<<"DESPUES"<< std::endl;
 
         populateLeafGlobalIdSet();
 
@@ -2716,45 +2717,45 @@ void CpGrid::refineAndProvideMarkedRefinedRelations( /* Marked elements paramete
         // When the element is marked for refinement, we also mark its corners and faces
         // since they will get replaced by refined ones.
         if (getMark(element) ==  1) {
-            markedElem_count +=1;
-            const auto& markedElemLevel = assignRefinedLevel[elemIdx];
-            assert(markedElemLevel > preAdaptMaxLevel);
-            // Shift the markedElemRefinedLevel to access data containers
-            const auto& shiftedLevel = markedElemLevel - preAdaptMaxLevel-1;
-            // Build auxiliary LGR for the refinement of this element
-            const auto& [elemLgr_ptr,
-                         parentCorners_to_equivalentRefinedCorners,
-                         parentFace_to_itsRefinedFaces,
-                         parentCell_to_itsRefinedCells,
-                         refinedFace_to_itsParentFace,
-                         refinedCell_to_itsParentCell]
-                = current_view_data_->refineSingleCell(cells_per_dim_vec[shiftedLevel], elemIdx);
-            markedElem_to_itsLgr[ elemIdx ] = elemLgr_ptr;
+            // markedElem_count +=1;
+            // const auto& markedElemLevel = assignRefinedLevel[elemIdx];
+            // assert(markedElemLevel > preAdaptMaxLevel);
+            // // Shift the markedElemRefinedLevel to access data containers
+            // const auto& shiftedLevel = markedElemLevel - preAdaptMaxLevel-1;
+            // // Build auxiliary LGR for the refinement of this element
+            // const auto& [elemLgr_ptr,
+            //              parentCorners_to_equivalentRefinedCorners,
+            //              parentFace_to_itsRefinedFaces,
+            //              parentCell_to_itsRefinedCells,
+            //              refinedFace_to_itsParentFace,
+            //              refinedCell_to_itsParentCell]
+            //     = current_view_data_->refineSingleCell(cells_per_dim_vec[shiftedLevel], elemIdx);
+            // markedElem_to_itsLgr[ elemIdx ] = elemLgr_ptr;
 
-            const auto& childrenCount = cells_per_dim_vec[shiftedLevel][0]*cells_per_dim_vec[shiftedLevel][1]*cells_per_dim_vec[shiftedLevel][2];
-            std::vector<int> refinedChildrenList(childrenCount);
+            // const auto& childrenCount = cells_per_dim_vec[shiftedLevel][0]*cells_per_dim_vec[shiftedLevel][1]*cells_per_dim_vec[shiftedLevel][2];
+            // std::vector<int> refinedChildrenList(childrenCount);
 
-            for (int refinedCell = 0; refinedCell < childrenCount; ++refinedCell) {
+            // for (int refinedCell = 0; refinedCell < childrenCount; ++refinedCell) {
 
-                elemLgrAndElemLgrCell_to_adaptedCell[{elemIdx, refinedCell}] = cell_count;
-                adaptedCell_to_elemLgrAndElemLgrCell[cell_count] = {elemIdx, refinedCell};
-                cell_count +=1;
+            //     elemLgrAndElemLgrCell_to_adaptedCell[{elemIdx, refinedCell}] = cell_count;
+            //     adaptedCell_to_elemLgrAndElemLgrCell[cell_count] = {elemIdx, refinedCell};
+            //     cell_count +=1;
 
-                elemLgrAndElemLgrCell_to_refinedLevelAndRefinedCell[{elemIdx, refinedCell}] = { markedElemLevel, refined_cell_count_vec[shiftedLevel]};
-                refinedLevelAndRefinedCell_to_elemLgrAndElemLgrCell[{markedElemLevel, refined_cell_count_vec[shiftedLevel]}] = {elemIdx, refinedCell};
-                refinedChildrenList[refinedCell] = refined_cell_count_vec[shiftedLevel];
-                refined_cell_count_vec[shiftedLevel] +=1;
+            //     elemLgrAndElemLgrCell_to_refinedLevelAndRefinedCell[{elemIdx, refinedCell}] = { markedElemLevel, refined_cell_count_vec[shiftedLevel]};
+            //     refinedLevelAndRefinedCell_to_elemLgrAndElemLgrCell[{markedElemLevel, refined_cell_count_vec[shiftedLevel]}] = {elemIdx, refinedCell};
+            //     refinedChildrenList[refinedCell] = refined_cell_count_vec[shiftedLevel];
+            //     refined_cell_count_vec[shiftedLevel] +=1;
 
-            }
+            // }
             
-            preAdapt_parent_to_children_cells_vec[element.level()][element.getEquivLevelElem().index()] = std::make_pair( markedElemLevel, refinedChildrenList);
-            for (const auto& [markedCorner, lgrEquivCorner] : parentCorners_to_equivalentRefinedCorners) {
-                cornerInMarkedElemWithEquivRefinedCorner[markedCorner].push_back({elemIdx, lgrEquivCorner});
-                markedElemAndEquivRefinedCorn_to_corner[ {elemIdx, lgrEquivCorner}] = markedCorner;
-            }
-            for (const auto& [markedFace, itsRefinedFaces] : parentFace_to_itsRefinedFaces) {
-                faceInMarkedElemAndRefinedFaces[markedFace].push_back({elemIdx, itsRefinedFaces});
-            }
+            // preAdapt_parent_to_children_cells_vec[element.level()][element.getEquivLevelElem().index()] = std::make_pair( markedElemLevel, refinedChildrenList);
+            // for (const auto& [markedCorner, lgrEquivCorner] : parentCorners_to_equivalentRefinedCorners) {
+            //     cornerInMarkedElemWithEquivRefinedCorner[markedCorner].push_back({elemIdx, lgrEquivCorner});
+            //     markedElemAndEquivRefinedCorn_to_corner[ {elemIdx, lgrEquivCorner}] = markedCorner;
+            // }
+            // for (const auto& [markedFace, itsRefinedFaces] : parentFace_to_itsRefinedFaces) {
+            //     faceInMarkedElemAndRefinedFaces[markedFace].push_back({elemIdx, itsRefinedFaces});
+            // }
         } // end-if-elemMark==1
     } // end-elem-for-loop
 }
@@ -3573,41 +3574,41 @@ void CpGrid::populateLeafGridCells(Dune::cpgrid::EntityVariableBase<cpgrid::Geom
         for (int corn = 0; corn < 8; ++corn) {
             int adaptedCorn = 0; // It'll get rewritten.
             const auto& preAdaptCorn = preAdapt_cell_to_point[corn];
-            auto adapted_candidate =  elemLgrAndElemLgrCorner_to_adaptedCorner.find({elemLgr, preAdaptCorn});
-            if ( adapted_candidate == elemLgrAndElemLgrCorner_to_adaptedCorner.end() ) {
-                // Corner might have vanished - Search its equivalent lgr-corner in that case -
-                // last lgr where the corner appears -
-                std::array<int,2> lastAppearanceLgr_lgrEquivCorner = {0, 0}; // It'll get rewritten.
-                if ((elemLgr ==-1) && (!cornerInMarkedElemWithEquivRefinedCorner[preAdaptCorn].empty())) {
-                    lastAppearanceLgr_lgrEquivCorner = cornerInMarkedElemWithEquivRefinedCorner[preAdaptCorn].back();
-                }
-                if (elemLgr > -1) {
-                    // Corner might have vanished - Search its equivalent lgr-corner in that case -
-                    // last lgr where the corner appears -
-                    if(auto candidate = markedElemAndEquivRefinedCorn_to_corner.find({elemLgr, preAdaptCorn}); candidate != markedElemAndEquivRefinedCorn_to_corner.end()) {
-                        lastAppearanceLgr_lgrEquivCorner = cornerInMarkedElemWithEquivRefinedCorner[candidate->second].back();
-                    }
-                    else {
-                        // To locate vanished corners, we need a while-loop, since {elemLgr, elemLgrcorner} leads to
-                        // {neighboringElemLgr, neighboringElemLgrCornerIdx}, which might have also vanished.
-                        // Then, use the lastest appearance of the current corner, meaning, the first (and unique one - by construction) that
-                        // gives elemLgrAndElemLgrCorner_to_adaptedCorner.count( lastAppearanceLgr_lgrEquivCorner ) == 1).
-                        // This corner lies on the area occupied by a coarse face that got refined and belonged to two marked elements.
-                        // Get the index of this corner with respect to the greatest marked element index.
-                        lastAppearanceLgr_lgrEquivCorner = vanishedRefinedCorner_to_itsLastAppearance.at({elemLgr, preAdaptCorn});
-                        while (elemLgrAndElemLgrCorner_to_adaptedCorner.find(lastAppearanceLgr_lgrEquivCorner) == elemLgrAndElemLgrCorner_to_adaptedCorner.end()) {
-                            auto& tempLgr_lgrCorner =  lastAppearanceLgr_lgrEquivCorner;
-                            lastAppearanceLgr_lgrEquivCorner =  vanishedRefinedCorner_to_itsLastAppearance.at(tempLgr_lgrCorner);
-                        }
-                    }
-                }
-                adaptedCorn =  elemLgrAndElemLgrCorner_to_adaptedCorner.at(lastAppearanceLgr_lgrEquivCorner);
-            }
-            // Corner is stored in adapted_corners
-            else {
-                assert(adapted_candidate != elemLgrAndElemLgrCorner_to_adaptedCorner.end());
-                adaptedCorn = adapted_candidate->second;
-            }
+            // auto adapted_candidate =  elemLgrAndElemLgrCorner_to_adaptedCorner.find({elemLgr, preAdaptCorn});
+            // if ( adapted_candidate == elemLgrAndElemLgrCorner_to_adaptedCorner.end() ) {
+            //     // Corner might have vanished - Search its equivalent lgr-corner in that case -
+            //     // last lgr where the corner appears -
+            //     std::array<int,2> lastAppearanceLgr_lgrEquivCorner = {0, 0}; // It'll get rewritten.
+            //     if ((elemLgr ==-1) && (!cornerInMarkedElemWithEquivRefinedCorner[preAdaptCorn].empty())) {
+            //         lastAppearanceLgr_lgrEquivCorner = cornerInMarkedElemWithEquivRefinedCorner[preAdaptCorn].back();
+            //     }
+            //     if (elemLgr > -1) {
+            //         // Corner might have vanished - Search its equivalent lgr-corner in that case -
+            //         // last lgr where the corner appears -
+            //         // if(auto candidate = markedElemAndEquivRefinedCorn_to_corner.find({elemLgr, preAdaptCorn}); candidate != markedElemAndEquivRefinedCorn_to_corner.end()) {
+            //         //     lastAppearanceLgr_lgrEquivCorner = cornerInMarkedElemWithEquivRefinedCorner[candidate->second].back();
+            //         // }
+            //         // else {
+            //         //     // To locate vanished corners, we need a while-loop, since {elemLgr, elemLgrcorner} leads to
+            //         //     // {neighboringElemLgr, neighboringElemLgrCornerIdx}, which might have also vanished.
+            //         //     // Then, use the lastest appearance of the current corner, meaning, the first (and unique one - by construction) that
+            //         //     // gives elemLgrAndElemLgrCorner_to_adaptedCorner.count( lastAppearanceLgr_lgrEquivCorner ) == 1).
+            //         //     // This corner lies on the area occupied by a coarse face that got refined and belonged to two marked elements.
+            //         //     // Get the index of this corner with respect to the greatest marked element index.
+            //         //     // lastAppearanceLgr_lgrEquivCorner = vanishedRefinedCorner_to_itsLastAppearance.at({elemLgr, preAdaptCorn});
+            //         //     // while (elemLgrAndElemLgrCorner_to_adaptedCorner.find(lastAppearanceLgr_lgrEquivCorner) == elemLgrAndElemLgrCorner_to_adaptedCorner.end()) {
+            //         //     //     auto& tempLgr_lgrCorner =  lastAppearanceLgr_lgrEquivCorner;
+            //         //     //     lastAppearanceLgr_lgrEquivCorner =  vanishedRefinedCorner_to_itsLastAppearance.at(tempLgr_lgrCorner);
+            //         //     // }
+            //         // }
+            //     }
+            //     adaptedCorn =  elemLgrAndElemLgrCorner_to_adaptedCorner.at(lastAppearanceLgr_lgrEquivCorner);
+            // }
+            // // Corner is stored in adapted_corners
+            // else {
+            //     assert(adapted_candidate != elemLgrAndElemLgrCorner_to_adaptedCorner.end());
+            //     adaptedCorn = adapted_candidate->second;
+            // }
             adapted_cell_to_point[cell][corn] = adaptedCorn;
         } // end-cell_to_point
 
@@ -3650,8 +3651,8 @@ void CpGrid::populateLeafGridCells(Dune::cpgrid::EntityVariableBase<cpgrid::Geom
         adapted_cell_to_face.appendRow(aux_cell_to_face.begin(), aux_cell_to_face.end());
 
         // Create a pointer to the first element of "adapted_cell_to_point" (required as the fourth argement to construct a Geometry<3,3> type object).
-        int* indices_storage_ptr = adapted_cell_to_point[cell].data();
-        adapted_cells[cell] = cpgrid::Geometry<3,3>(cellGeom.center(), cellGeom.volume(), allCorners, indices_storage_ptr);
+        //int* indices_storage_ptr = adapted_cell_to_point[cell].data();
+        //adapted_cells[cell] = cpgrid::Geometry<3,3>(cellGeom.center(), cellGeom.volume(), allCorners, indices_storage_ptr);
     } // adapted_cells
 
     // Adapted/Leaf-grid-view face to cell.
@@ -3706,38 +3707,38 @@ void CpGrid::populateRefinedCells(std::vector<Dune::cpgrid::EntityVariableBase<c
             const auto& preAdapt_cell_to_face = markedElem_to_itsLgr.at(elemLgr)->cell_to_face_[elemLgrCellEntity];
 
             // Cell to point.
-            for (int corn = 0; corn < 8; ++corn) {
-                int refinedCorn;
-                const auto& preAdaptCorn = preAdapt_cell_to_point[corn];
-                auto refined_candidate = elemLgrAndElemLgrCorner_to_refinedLevelAndRefinedCorner.find({elemLgr, preAdaptCorn});
-                if (refined_candidate == elemLgrAndElemLgrCorner_to_refinedLevelAndRefinedCorner.end()) {
-                    // Corner might have vanished - Search its equivalent lgr-corner in that case -
-                    // last lgr where the corner appears -
-                    std::array<int,2> lastAppearanceLgr_lgrCorner = {0, 0}; // It'll be rewritten
-                    if(auto candidate = markedElemAndEquivRefinedCorn_to_corner.find({elemLgr, preAdaptCorn}); candidate != markedElemAndEquivRefinedCorn_to_corner.end()) {
-                        lastAppearanceLgr_lgrCorner = cornerInMarkedElemWithEquivRefinedCorner[candidate->second].back();
-                    }
-                    else {
-                        // To locate vanished corners, we need a while-loop, since {elemLgr, elemLgrcorner} leads to
-                        // {neighboringElemLgr, neighboringElemLgrCornerIdx}, which might have also vanished.
-                        // Then, use the lastest appearance of the current corner, meaning, the first (and unique one - by construction) that
-                        // gives elemLgrAndElemLgrCorner_to_adaptedCorner.count( lastAppearanceLgr_lgrCorner ) == 1).
-                        // This corner lies on the area occupied by a coarse face that got refined and belonged to two marked elements.
-                        // Get the index of this corner with respect to the greatest marked element index.
-                        lastAppearanceLgr_lgrCorner = vanishedRefinedCorner_to_itsLastAppearance.at({elemLgr, preAdaptCorn});
-                        while (elemLgrAndElemLgrCorner_to_refinedLevelAndRefinedCorner.find(lastAppearanceLgr_lgrCorner) == elemLgrAndElemLgrCorner_to_refinedLevelAndRefinedCorner.end()) {
-                            auto& tempLgr_lgrCorner =   lastAppearanceLgr_lgrCorner;
-                            lastAppearanceLgr_lgrCorner =  vanishedRefinedCorner_to_itsLastAppearance.at(tempLgr_lgrCorner);
-                        }
-                    }
-                    refinedCorn = elemLgrAndElemLgrCorner_to_refinedLevelAndRefinedCorner.at(lastAppearanceLgr_lgrCorner)[1];
-                }
-                // Corner is stored in adapted_corners
-                else {
-                    refinedCorn = refined_candidate->second[1];
-                }
-                refined_cell_to_point_vec[shiftedLevel][cell][corn] = refinedCorn;
-            } // end-cell_to_point
+            // for (int corn = 0; corn < 8; ++corn) {
+            //     int refinedCorn;
+            //     const auto& preAdaptCorn = preAdapt_cell_to_point[corn];
+            //     auto refined_candidate = elemLgrAndElemLgrCorner_to_refinedLevelAndRefinedCorner.find({elemLgr, preAdaptCorn});
+            //     if (refined_candidate == elemLgrAndElemLgrCorner_to_refinedLevelAndRefinedCorner.end()) {
+            //         // Corner might have vanished - Search its equivalent lgr-corner in that case -
+            //         // last lgr where the corner appears -
+            //         std::array<int,2> lastAppearanceLgr_lgrCorner = {0, 0}; // It'll be rewritten
+            //         // if(auto candidate = markedElemAndEquivRefinedCorn_to_corner.find({elemLgr, preAdaptCorn}); candidate != markedElemAndEquivRefinedCorn_to_corner.end()) {
+            //         //     lastAppearanceLgr_lgrCorner = cornerInMarkedElemWithEquivRefinedCorner[candidate->second].back();
+            //         // }
+            //         // else {
+            //         //     // To locate vanished corners, we need a while-loop, since {elemLgr, elemLgrcorner} leads to
+            //         //     // {neighboringElemLgr, neighboringElemLgrCornerIdx}, which might have also vanished.
+            //         //     // Then, use the lastest appearance of the current corner, meaning, the first (and unique one - by construction) that
+            //         //     // gives elemLgrAndElemLgrCorner_to_adaptedCorner.count( lastAppearanceLgr_lgrCorner ) == 1).
+            //         //     // This corner lies on the area occupied by a coarse face that got refined and belonged to two marked elements.
+            //         //     // Get the index of this corner with respect to the greatest marked element index.
+            //         //     // lastAppearanceLgr_lgrCorner = vanishedRefinedCorner_to_itsLastAppearance.at({elemLgr, preAdaptCorn});
+            //         //     // while (elemLgrAndElemLgrCorner_to_refinedLevelAndRefinedCorner.find(lastAppearanceLgr_lgrCorner) == elemLgrAndElemLgrCorner_to_refinedLevelAndRefinedCorner.end()) {
+            //         //     //     auto& tempLgr_lgrCorner =   lastAppearanceLgr_lgrCorner;
+            //         //     //     lastAppearanceLgr_lgrCorner =  vanishedRefinedCorner_to_itsLastAppearance.at(tempLgr_lgrCorner);
+            //         //     // }
+            //         // }
+            //         // refinedCorn = elemLgrAndElemLgrCorner_to_refinedLevelAndRefinedCorner.at(lastAppearanceLgr_lgrCorner)[1];
+            //     }
+            //     // Corner is stored in adapted_corners
+            //     else {
+            //         refinedCorn = refined_candidate->second[1];
+            //     }
+            //     refined_cell_to_point_vec[shiftedLevel][cell][corn] = refinedCorn;
+            // } // end-cell_to_point
 
             // Cell to face.
             for (const auto& face : preAdapt_cell_to_face) {
@@ -3770,8 +3771,8 @@ void CpGrid::populateRefinedCells(std::vector<Dune::cpgrid::EntityVariableBase<c
             const auto& elemLgrGeom =  (*( markedElem_to_itsLgr.at(elemLgr)->geometry_.geomVector(std::integral_constant<int,0>())))[elemLgrCellEntity];
 
             // Create a pointer to the first element of "refined_cell_to_point" (required as the fourth argement to construct a Geometry<3,3> type object).
-            int* indices_storage_ptr = refined_cell_to_point_vec[shiftedLevel][cell].data();
-            refined_cells_vec[shiftedLevel][cell] = cpgrid::Geometry<3,3>(elemLgrGeom.center(), elemLgrGeom.volume(), allLevelCorners, indices_storage_ptr);
+            //int* indices_storage_ptr = refined_cell_to_point_vec[shiftedLevel][cell].data();
+            //refined_cells_vec[shiftedLevel][cell] = cpgrid::Geometry<3,3>(elemLgrGeom.center(), elemLgrGeom.volume(), allLevelCorners, indices_storage_ptr);
         } // refined_cells
         // Refined face to cell.
         refined_cell_to_face_vec[shiftedLevel].makeInverseRelation(refined_face_to_cell_vec[shiftedLevel]);

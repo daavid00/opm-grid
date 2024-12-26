@@ -354,9 +354,9 @@ namespace Dune
         public:
             typedef int IdType;
 
-            void swap(std::vector<int>& cellMapping,
-                      std::vector<int>& faceMapping,
-                      std::vector<int>& pointMapping)
+            void swap(std::vector<std::size_t>& cellMapping,
+                      std::vector<std::size_t>& faceMapping,
+                      std::vector<std::size_t>& pointMapping)
             {
                 idSet_=nullptr;
                 GlobalIdMapping::swap(cellMapping,

@@ -100,11 +100,11 @@ namespace Dune
                        cpgrid::OrientedEntityTable<0, 1>& c2f,
                        cpgrid::OrientedEntityTable<1, 0>& f2c,
                        Opm::SparseTable<std::size_t>& f2p,
-                       std::vector<std::array<int,8> >& c2p,
+                       std::vector<std::array<std::size_t,8> >& c2p,
                        std::vector<int>& face_to_output_face);
         void buildGeom(const processed_grid& output,
                        const cpgrid::OrientedEntityTable<0, 1>& c2f,
-                       const std::vector<std::array<int,8> >& c2p,
+                       const std::vector<std::array<std::size_t,8> >& c2p,
                        const std::vector<int>& face_to_output_face,
                        const std::unordered_map<size_t, double>& aquifer_cell_volumes,
                        cpgrid::EntityVariable<cpgrid::Geometry<3, 3>, 0>& cell_geom,
@@ -1106,7 +1106,7 @@ namespace cpgrid
                        cpgrid::OrientedEntityTable<0, 1>& c2f,
                        cpgrid::OrientedEntityTable<1, 0>& f2c,
                        Opm::SparseTable<std::size_t>& f2p,
-                       std::vector<std::array<int,8> >& c2p,
+                       std::vector<std::array<std::size_t,8> >& c2p,
                        std::vector<int>& face_to_output_face)
         {
             // Map local to global cell index.
@@ -1151,14 +1151,14 @@ namespace cpgrid
                 assert(output.face_ptr[top_face + 1] - tfbegin == 4);
                 // We want the corners in 'x fastest, then y, then z' order,
                 // so we need to take the face_nodes in noncyclic order: 0 1 3 2.
-                std::array<int,8> corners = {{ output.face_nodes[bfbegin],
-                                               output.face_nodes[bfbegin + 1],
-                                               output.face_nodes[bfbegin + 3],
-                                               output.face_nodes[bfbegin + 2],
-                                               output.face_nodes[tfbegin],
-                                               output.face_nodes[tfbegin + 1],
-                                               output.face_nodes[tfbegin + 3],
-                                               output.face_nodes[tfbegin + 2] }};
+                std::array<std::size_t,8> corners = {{ static_cast<std::size_t>(output.face_nodes[bfbegin]),
+                                               static_cast<std::size_t>(output.face_nodes[bfbegin + 1]),
+                                               static_cast<std::size_t>(output.face_nodes[bfbegin + 3]),
+                                               static_cast<std::size_t>(output.face_nodes[bfbegin + 2]),
+                                               static_cast<std::size_t>(output.face_nodes[tfbegin]),
+                                               static_cast<std::size_t>(output.face_nodes[tfbegin + 1]),
+                                               static_cast<std::size_t>(output.face_nodes[tfbegin + 3]),
+                                               static_cast<std::size_t>(output.face_nodes[tfbegin + 2]) }};
                 c2p.push_back(corners);
             }
 #ifndef NDEBUG
@@ -1219,7 +1219,7 @@ namespace cpgrid
             }
             cpgrid::Geometry<3, 3> operator()(const FieldVector<double, 3>& pos,
                                                       double vol,
-                                                      const std::array<int,8>& corner_indices)
+                                                      const std::array<std::size_t,8>& corner_indices)
             {
                 return cpgrid::Geometry<3, 3>(pos, vol, allcorners_, &corner_indices[0]);
             }
@@ -1239,7 +1239,7 @@ namespace cpgrid
 
         void buildGeom(const processed_grid& output,
                        const cpgrid::OrientedEntityTable<0, 1>& c2f,
-                       const std::vector<std::array<int,8> >& c2p,
+                       const std::vector<std::array<std::size_t,8> >& c2p,
                        const std::vector<int>& face_to_output_face,
                        const std::unordered_map<size_t, double>& aquifer_cell_volumes,
                        cpgrid::EntityVariable<cpgrid::Geometry<3, 3>, 0>& cell_geom,
@@ -1316,13 +1316,13 @@ namespace cpgrid
             std::cout << "Faces:              " << clock.secsSinceLast() << std::endl;
 #endif
             // Get the cell data.
-            int nc = output.number_of_cells;
+            std::size_t nc = output.number_of_cells;
             std::vector<int> face_indices;
-            for (int cell = 0; cell < nc; ++cell) {
+            for (std::size_t cell = 0; cell < nc; ++cell) {
                 cpgrid::EntityRep<0> cell_ent(cell, true);
                 cpgrid::OrientedEntityTable<0, 1>::row_type cf = c2f[cell_ent];
                 face_indices.clear();
-                for (int local_index = 0; local_index < cf.size(); ++local_index) {
+                for (std::size_t local_index = 0; local_index < static_cast<std::size_t>(cf.size()); ++local_index) {
                     if (face_to_output_face[cf[local_index].index()] != cpgrid::NNCFace) {
                         face_indices.push_back(cf[local_index].index());
                     }
@@ -1331,7 +1331,7 @@ namespace cpgrid
                 point_t cell_avg = average(cell_pts);
                 point_t cell_centroid(0.0);
                 double tot_cell_vol = 0.0;
-                for (int local_index = 0; local_index < cf.size(); ++local_index) {
+                for (std::size_t local_index = 0; local_index < static_cast<std::size_t>(cf.size()); ++local_index) {
                     int face = cf[local_index].index();
                     int output_face = face_to_output_face[face];
                     if (output_face == cpgrid::NNCFace) {
@@ -1389,8 +1389,8 @@ namespace cpgrid
 //             std::transform(cell_centroids.begin(), cell_centroids.end(),
 //                            cell_volumes.begin(),
 //                            std::back_inserter(cell_geom, mcellg);
-            for (int c = 0;  c < nc; ++c) {
-                cell_geom.push_back(mcellg(cell_centroids[c], cell_volumes[c], c2p[c]));
+            for (std::size_t c = 0;  c < nc; ++c) {
+                cell_geom.push_back(mcellg(cell_centroids[c], cell_volumes[c], c2p[c])); //FIXTHIS
             }
             // Faces
             face_geom.reserve(face_centroids.size());

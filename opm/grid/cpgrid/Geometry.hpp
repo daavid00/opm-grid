@@ -408,7 +408,7 @@ namespace Dune
             Geometry(const GlobalCoordinate& pos,
                      ctype vol,
                      std::shared_ptr<const EntityVariable<cpgrid::Geometry<0, 3>, 3>> allcorners_ptr,
-                     const int* corner_indices)
+                     const std::size_t* corner_indices)
                 : pos_(pos), vol_(vol),
                   allcorners_(allcorners_ptr), cor_idx_(corner_indices)
             {
@@ -1011,13 +1011,13 @@ namespace Dune
                             sum_all_refined_cell_volumes += refined_cell_volume;
                             // Create a pointer to the first element of "refined_cell_to_point"
                             // (required as the fourth argement to construct a Geometry<3,3> type object).
-                            int* indices_storage_ptr = refined_cell_to_point[refined_cell_idx].data();
-                            // Construct the Geometry of the refined cell associated with 'kji'.
-                            refined_cells[refined_cell_idx] =
-                                Geometry<3,cdim>(refined_cell_center,
-                                                 refined_cell_volume,
-                                                 all_geom.geomVector(std::integral_constant<int,3>()),
-                                                 indices_storage_ptr);
+                            // std::size_t* indices_storage_ptr = refined_cell_to_point[refined_cell_idx].data();
+                            // // Construct the Geometry of the refined cell associated with 'kji'.
+                            // refined_cells[refined_cell_idx] =
+                            //     Geometry<3,cdim>(refined_cell_center,
+                            //                      refined_cell_volume,
+                            //                      all_geom.geomVector(std::integral_constant<int,3>()),
+                            //                      indices_storage_ptr);
                         } // end i-for-loop
                     }  // end j-for-loop
                 } // end k-for-loop
@@ -1038,7 +1038,7 @@ namespace Dune
             GlobalCoordinate pos_;
             double vol_;
             std::shared_ptr<const EntityVariable<Geometry<0, 3>,3>> allcorners_; // For dimension 3 only
-            const int* cor_idx_; // For dimension 3 only
+            const std::size_t* cor_idx_; // For dimension 3 only
 
             /// @brief
             ///   Auxiliary function to get refined_face information: tag, index, face_to_point_, face_to_cell, face centroid,

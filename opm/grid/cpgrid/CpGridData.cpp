@@ -237,7 +237,7 @@ int getIndex(const int* i)
 template<class T>
 int getIndex(T i)
 {
-    return i->index();
+    return i->index();//i->index() //FIXTHIS
 }
 
 template<class C>
@@ -500,7 +500,7 @@ struct CellGeometryHandle
                        const std::vector<int>& gatherAquiferCells,
                        std::vector<int>& scatterAquiferCells,
                        std::shared_ptr<const EntityVariable<cpgrid::Geometry<0, 3>, 3>> pointGeom,
-                       const std::vector< std::array<int,8> >& cell2Points)
+                       const std::vector< std::array<std::size_t,8> >& cell2Points)
         : gatherCont_(gatherCont), scatterCont_(scatterCont),
           gatherAquiferCells_(gatherAquiferCells),scatterAquiferCells_(scatterAquiferCells),
           pointGeom_(std::move(pointGeom)), cell2Points_(cell2Points)
@@ -573,18 +573,18 @@ private:
     const std::vector<int>& gatherAquiferCells_;
     std::vector<int>& scatterAquiferCells_;
     std::shared_ptr<const EntityVariable<cpgrid::Geometry<0, 3>, 3>> pointGeom_;
-    const std::vector< std::array<int,8> >& cell2Points_;
+    const std::vector< std::array<std::size_t,8> >& cell2Points_;
 };
 
 struct Cell2PointsDataHandle
 {
     using DataType = int;
-    using Vector = std::vector<std::array<int,8> >;
+    using Vector = std::vector<std::array<std::size_t,8> >;
     Cell2PointsDataHandle(const Vector& globalCell2Points,
                           const LevelGlobalIdSet& globalIds,
                           const std::vector<std::set<std::size_t> >& globalAdditionalPointIds,
                           Vector& localCell2Points,
-                          std::vector<int>& flatGlobalPoints,
+                          std::vector<std::size_t>& flatGlobalPoints,
                           std::vector<std::set<std::size_t> >& additionalPointIds)
         : globalCell2Points_(globalCell2Points), globalIds_(globalIds), globalAdditionalPointIds_(globalAdditionalPointIds),
           localCell2Points_(localCell2Points), flatGlobalPoints_(flatGlobalPoints), additionalPointIds_(additionalPointIds)
@@ -622,7 +622,7 @@ struct Cell2PointsDataHandle
         auto i = t.index();
         auto& points = localCell2Points_[i];
         std::for_each(points.begin(), points.end(),
-                      [&buffer, this](int& point){
+                      [&buffer, this](int point){
                           buffer.read(point);
                           this->flatGlobalPoints_.push_back(point);
                       });
@@ -639,7 +639,7 @@ private:
     const LevelGlobalIdSet& globalIds_;
     const std::vector<std::set<std::size_t> >& globalAdditionalPointIds_;
     Vector& localCell2Points_;
-    std::vector<int>& flatGlobalPoints_;
+    std::vector<std::size_t>& flatGlobalPoints_;
     std::vector<std::set<std::size_t> >& additionalPointIds_;
 };
 
@@ -707,7 +707,7 @@ struct SparseTableDataHandle
     SparseTableDataHandle(const Table& global,
                           const LevelGlobalIdSet& globalIds,
                           Table& local,
-                          const std::map<int,int>& global2Local)
+                          const std::map<std::size_t,std::size_t>& global2Local)
         : global_(global), globalIds_(globalIds), local_(local), global2Local_(global2Local)
     {}
     bool fixedSize(int, int)
@@ -751,7 +751,7 @@ private:
     const Table& global_;
     const LevelGlobalIdSet& globalIds_;
     Table& local_;
-    const std::map<int,int>& global2Local_;
+    const std::map<std::size_t,std::size_t>& global2Local_;
 };
 
 template<class IdSet, int from, int to>
@@ -825,7 +825,7 @@ class C2FDataHandle
 {
 public:
     C2FDataHandle(const Table& global, const LevelGlobalIdSet& globalIds, Table& local,
-                  std::vector<int>& unsignedGlobalFaceIds)
+                  std::vector<std::size_t>& unsignedGlobalFaceIds)
         : OrientedEntityTableDataHandle<LevelGlobalIdSet,0,1>(global, local, &globalIds),
           unsignedGlobalFaceIds_(unsignedGlobalFaceIds)
     {}
@@ -856,7 +856,7 @@ public:
         OPM_THROW(std::logic_error, "This should never throw!");
     }
 private:
-    std::vector<int>& unsignedGlobalFaceIds_;
+    std::vector<std::size_t>& unsignedGlobalFaceIds_;
 };
 
 template<class IndexSet>
@@ -1227,24 +1227,25 @@ void CpGridData::computeGeometry(CpGrid& grid,
                                  DefaultGeometryPolicy& geometry,
                                  std::vector<int>& aquiferCells,
                                  const OrientedEntityTable<0, 1>& cell2Faces,
-                                 const std::vector< std::array<int,8> >& cell2Points)
+                                 const std::vector< std::array<std::size_t,8> >& cell2Points)
 {
     FaceGeometryHandle faceGeomHandle(*globalGeometry.geomVector(std::integral_constant<int,1>()),
                                       *geometry.geomVector(std::integral_constant<int,1>()));
     FaceViaCellHandleWrapper<FaceGeometryHandle>
         wrappedFaceGeomHandle(faceGeomHandle, globalCell2Faces, cell2Faces);
+    std::cout<<"ANTES"<< std::endl;
     grid.scatterData(wrappedFaceGeomHandle);
 
     PointGeometryHandle pointGeomHandle(*globalGeometry.geomVector(std::integral_constant<int,3>()),
                                         *geometry.geomVector(std::integral_constant<int,3>()));
     grid.scatterData(pointGeomHandle);
-
     CellGeometryHandle cellGeomHandle(*globalGeometry.geomVector(std::integral_constant<int,0>()),
                                       *geometry.geomVector(std::integral_constant<int,0>()),
                                       globalAquiferCells, aquiferCells,
                                       geometry.geomVector(std::integral_constant<int,3>()),
                                       cell2Points);
     grid.scatterData(cellGeomHandle);
+    std::cout<<"DESPUES"<< std::endl;
 }
 
 void computeFace2Point(CpGrid& grid,
@@ -1253,7 +1254,7 @@ void computeFace2Point(CpGrid& grid,
                        const OrientedEntityTable<0, 1>& cell2Faces,
                        const Opm::SparseTable<size_t>& globalFace2Points,
                        Opm::SparseTable<std::size_t>& face2Points,
-                       const std::map<int,int>& global2local,
+                       const std::map<std::size_t,std::size_t>& global2local,
                        std::size_t noFaces)
 {
     std::vector<std::size_t> rowSizes(noFaces);
@@ -1266,7 +1267,7 @@ void computeFace2Point(CpGrid& grid,
     grid.scatterData(wrappedSizeHandle);
     face2Points.allocate(rowSizes.begin(), rowSizes.end());
     // Use entity with index INT_MAX to mark unprocessed row entries
-    for (int row = 0, size = face2Points.size(); row < size; ++row)
+    for (std::size_t row = 0, size = face2Points.size(); row < size; ++row)
     {
         for (auto&& point : face2Points[row])
         {
@@ -1289,7 +1290,7 @@ void computeFace2Cell(CpGrid& grid,
                       const IndexSet& globalIndexSet,
                       std::size_t noFaces)
 {
-    std::vector<size_t> rowSizes(noFaces);
+    std::vector<std::size_t> rowSizes(noFaces);
     using Table = OrientedEntityTable<1,0>;
     RowSizeDataHandle<Table,1> rowSizeHandle(globalFace2Cells, rowSizes);
     FaceViaCellHandleWrapper<RowSizeDataHandle<Table,1> > wrappedSizeHandle(rowSizeHandle,
@@ -1297,7 +1298,7 @@ void computeFace2Cell(CpGrid& grid,
     grid.scatterData(wrappedSizeHandle);
     face2Cells.allocate(rowSizes.begin(), rowSizes.end());
     // Use entity with index INT_MAX to mark unprocessed row entries
-    for (int row = 0, size = face2Cells.size(); row < size; ++row)
+    for (std::size_t row = 0, size = face2Cells.size(); row < size; ++row)
     {
         for (auto&& face : face2Cells.row(EntityRep<1>(row, true)))
         {
@@ -1310,7 +1311,7 @@ void computeFace2Cell(CpGrid& grid,
                                                                           globalCell2Faces, cell2Faces);
     grid.scatterData(wrappedEntryHandle);
 #ifndef NDEBUG
-    for (int row = 0, size = face2Cells.size(); row < size; ++row)
+    for (std::size_t row = 0, size = face2Cells.size(); row < size; ++row)
     {
         bool oneValid = false;
         for (auto&& face : face2Cells.row(EntityRep<1>(row, true)))
@@ -1323,11 +1324,11 @@ void computeFace2Cell(CpGrid& grid,
 }
 
 
-std::map<int,int> computeCell2Face(CpGrid& grid,
+std::map<std::size_t,std::size_t> computeCell2Face(CpGrid& grid,
                                    const OrientedEntityTable<0, 1>& globalCell2Faces,
                                    const LevelGlobalIdSet& globalIds,
                                    OrientedEntityTable<0, 1>& cell2Faces,
-                                   std::vector<int>& map2Global,
+                                   std::vector<std::size_t>& map2Global,
                                    std::size_t noCells)
 {
     std::vector<size_t> rowSizes(noCells);
@@ -1344,7 +1345,7 @@ std::map<int,int> computeCell2Face(CpGrid& grid,
     auto newEnd = std::unique(map2Global.begin(),map2Global.end());
     map2Global.resize(newEnd - map2Global.begin());
     // Convert face ids to local ones
-    std::map<int, int> map2Local;
+    std::map<std::size_t, std::size_t> map2Local;
     auto current_global = map2Global.begin();
     int localId = 0;
     // \todo improve since we are inserting values by sorted keys.
@@ -1352,7 +1353,7 @@ std::map<int,int> computeCell2Face(CpGrid& grid,
                     map2Global.size(),
                     [&localId, &current_global](){ return std::make_pair(*(current_global++), localId++); });
     // translate global to local ids
-    for (int row = 0, size = cell2Faces.size(); row < size; ++row)
+    for (std::size_t row = 0, size = cell2Faces.size(); row < size; ++row)
     {
         for (auto&& face : cell2Faces.row(EntityRep<0>(row, true)))
         {
@@ -1370,13 +1371,12 @@ std::map<int,int> computeCell2Face(CpGrid& grid,
     return map2Local;
 }
 
-std::vector<std::set<std::size_t> > computeAdditionalFacePoints(const std::vector<std::array<int,8> >& globalCell2Points,
+std::vector<std::set<std::size_t> > computeAdditionalFacePoints(const std::vector<std::array<std::size_t,8> >& globalCell2Points,
                                                         const OrientedEntityTable<0, 1>& globalCell2Faces,
                                                         const Opm::SparseTable<std::size_t>& globalFace2Points,
                                                         const LevelGlobalIdSet& globalIds)
 {
     std::vector<std::set<std::size_t> > additionalFacePoints(globalCell2Points.size());
-
     for ( std::size_t c = 0; c < globalCell2Points.size(); ++c)
     {
         const auto& points = globalCell2Points[c];
@@ -1394,7 +1394,7 @@ std::vector<std::set<std::size_t> > computeAdditionalFacePoints(const std::vecto
 
 template<bool send, class Map2Global, class Map2Local>
 void createInterfaceList(const typename CpGridData::InterfaceMap::value_type& procCellLists,
-                         const std::vector<std::array<int,8> >& cell2Points,
+                         const std::vector<std::array<std::size_t,8> >& cell2Points,
                          const std::vector<std::set<std::size_t> >& additionalPoints,
                          const Map2Global& local2Global,
                          Map2Local& map2Local,
@@ -1436,13 +1436,13 @@ void createInterfaceList(const typename CpGridData::InterfaceMap::value_type& pr
         pointList.add(point);
 }
 
-std::map<int,int> computeCell2Point(CpGrid& grid,
-                                    const std::vector<std::array<int,8> >& globalCell2Points,
+std::map<std::size_t,std::size_t> computeCell2Point(CpGrid& grid,
+                                    const std::vector<std::array<std::size_t,8> >& globalCell2Points,
                                     const LevelGlobalIdSet& globalIds,
                                     const OrientedEntityTable<0, 1>& globalCell2Faces,
                                     const Opm::SparseTable<std::size_t>& globalFace2Points,
-                                    std::vector<std::array<int,8> >& cell2Points,
-                                    std::vector<int>& map2Global,
+                                    std::vector<std::array<std::size_t,8> >& cell2Points,
+                                    std::vector<std::size_t>& map2Global,
                                     std::size_t noCells,
                                     const typename CpGridData::InterfaceMap& cellInterfaces,
                                     typename CpGridData::InterfaceMap& pointInterfaces
@@ -1450,7 +1450,7 @@ std::map<int,int> computeCell2Point(CpGrid& grid,
 {
     cell2Points.resize(noCells);
     map2Global.reserve(noCells*8*1.1);
-    auto globalAdditionalPoints = computeAdditionalFacePoints(globalCell2Points, globalCell2Faces,
+    std::vector<std::set<std::size_t> > globalAdditionalPoints = computeAdditionalFacePoints(globalCell2Points, globalCell2Faces,
                                                               globalFace2Points,
                                                               globalIds);
     std::vector<std::set<std::size_t> > additionalPoints(noCells);
@@ -1465,9 +1465,9 @@ std::map<int,int> computeCell2Point(CpGrid& grid,
     auto newEnd = std::unique(map2Global.begin(),map2Global.end());
     map2Global.resize(newEnd - map2Global.begin());
     // Convert point ids to local ones
-    std::map<int, int> map2Local;
+    std::map<std::size_t, std::size_t> map2Local;
     auto current_global = map2Global.begin();
-    int localId = 0;
+    std::size_t localId = 0;
     // \todo improve since we are inserting values by sorted keys.
     std::generate_n(std::inserter(map2Local, map2Local.begin()),
                     map2Global.size(),
@@ -1488,7 +1488,7 @@ std::map<int,int> computeCell2Point(CpGrid& grid,
         ReversePointGlobalIdSet globalMap2Local(globalIds);
         createInterfaceList<true>(procCellLists, globalCell2Points,
                                   globalAdditionalPoints,
-                                  [&globalIds](int i){
+                                  [&globalIds](std::size_t i){
                                       return globalIds.id(EntityRep<3>(i, true));
                                   },
                                   globalMap2Local,
@@ -1497,7 +1497,7 @@ std::map<int,int> computeCell2Point(CpGrid& grid,
         // The receive list
         createInterfaceList<false>(procCellLists, cell2Points,
                                    additionalPoints,
-                                   [&map2Global](int i)
+                                   [&map2Global](std::size_t i)
                                    {
                                        return map2Global[i];
                                    },
@@ -1523,9 +1523,9 @@ void CpGridData::distributeGlobalGrid(CpGrid& grid,
     // Now we need to compute the existing faces and points. Either exist
     // if they are reachable from an existing cell.
     // We use std::numeric_limits<int>::max() to indicate non-existent entities.
-    std::vector<int> map2GlobalFaceId;
-    std::vector<int> map2GlobalPointId;
-    std::map<int,int> point_indicator =
+    std::vector<std::size_t> map2GlobalFaceId;
+    std::vector<std::size_t> map2GlobalPointId;
+    std::map<std::size_t,std::size_t> point_indicator =
         computeCell2Point(grid, view_data.cell_to_point_, *view_data.global_id_set_, view_data.cell_to_face_,
                           view_data.face_to_point_, cell_to_point_,
                           map2GlobalPointId, cell_indexset.size(),
@@ -1534,13 +1534,13 @@ void CpGridData::distributeGlobalGrid(CpGrid& grid,
 
     // create global ids array for cells. The parallel index set uses the global id
     // as the global index.
-    std::vector<int> map2GlobalCellId(cell_indexset.size());
+    std::vector<std::size_t> map2GlobalCellId(cell_indexset.size());
     for(const auto& i: cell_indexset)
     {
         map2GlobalCellId[i.local()]=i.global();
     }
 
-    std::map<int,int> face_indicator =
+    std::map<std::size_t,std::size_t> face_indicator =
         computeCell2Face(grid, view_data.cell_to_face_, *view_data.global_id_set_, cell_to_face_,
                          map2GlobalFaceId, cell_indexset.size());
 
@@ -1557,6 +1557,9 @@ void CpGridData::distributeGlobalGrid(CpGrid& grid,
 
 
     logical_cartesian_size_=view_data.logical_cartesian_size_;
+
+    std::cout<<noExistingPoints<< std::endl;
+    std::cout<<noExistingFaces<< std::endl;
 
     // Set up the new topology arrays
     geometry_.geomVector(std::integral_constant<int,1>()) -> resize(noExistingFaces);
@@ -1633,7 +1636,7 @@ void CpGridData::computePointPartitionType()
     // not border.
     partition_type_indicator_->point_indicator_.resize(geometry_.geomVector<3>().size(),
                                                        InteriorEntity);
-    for(std::size_t i=0; i<face_to_point_.size(); ++i)
+    for(std::size_t i=0; i<static_cast<std::size_t>(face_to_point_.size()); ++i)
     {
         for(auto p=face_to_point_[i].begin(),
                 pend=face_to_point_[i].end(); p!=pend; ++p)
@@ -1696,7 +1699,8 @@ void CpGridData::computeCommunicationInterfaces([[maybe_unused]] int noExistingP
     std::vector<std::map<int,char> > point_attributes(noExistingPoints);
     AttributeDataHandle<std::vector<std::array<int,8> > >
         point_handle(ccobj_.rank(), *partition_type_indicator_,
-                     point_attributes, cell_to_point_, *this);
+                     point_attributes, cell_to_point_sk, *this);
+    std::cout<<"DESPUES"<< std::endl;
     if( static_cast<const Dune::Interface&>(std::get<All_All_Interface>(cell_interfaces_))
         .interfaces().size() )
     {
@@ -1826,7 +1830,7 @@ void CpGridData::checkCuboidShape(const std::vector<int>& cellIdx_vec) const
     bool cuboidShape = true;
     for (const auto cellIdx : cellIdx_vec)
     {
-        const auto cellToPoint = cell_to_point_[cellIdx]; // bottom face corners {0,1,2,3}, top face corners {4,5,6,7}
+        const auto cellToPoint = cell_to_point_sk[cellIdx]; // bottom face corners {0,1,2,3}, top face corners {4,5,6,7}
         // Compute 'cuboid' volume with corners: |corn[1]-corn[0]|x|corn[3]-corn[1]|x|corn[5]-corn[1]|
         std::vector<cpgrid::Geometry<0,3>::GlobalCoordinate> aFewCorners;
         aFewCorners.resize(4); // {'0', '1', '3', '5'}
@@ -1867,7 +1871,7 @@ std::array<std::vector<double>,3> CpGridData::getWidthsLengthsHeights(const std:
 
     for (int i = startIJK[0]; i < endIJK[0]; ++i) {
         int cellIdx = (startIJK[2]*grid_dim[0]*grid_dim[1]) + (startIJK[1]*grid_dim[0]) + i;
-        const auto cellToPoint = cell_to_point_[cellIdx]; // bottom face corners {0,1,2,3}, top face corners {4,5,6,7}
+        const auto cellToPoint = cell_to_point_sk[cellIdx]; // bottom face corners {0,1,2,3}, top face corners {4,5,6,7}
         // x = |corn[1]-corn[0]|
         // Compute difference and dot using DUNE functionality
         auto difference = (*(this -> geometry_.geomVector(std::integral_constant<int,3>()))).get(cellToPoint[0]).center();
@@ -1878,7 +1882,7 @@ std::array<std::vector<double>,3> CpGridData::getWidthsLengthsHeights(const std:
     for (int j = startIJK[1]; j < endIJK[1]; ++j)
     {
         int cellIdx = (startIJK[2]*grid_dim[0]*grid_dim[1]) + (j*grid_dim[0]) + startIJK[0];
-        const auto cellToPoint = cell_to_point_[cellIdx]; // bottom face corners {0,1,2,3}, top face corners {4,5,6,7}
+        const auto cellToPoint = cell_to_point_sk[cellIdx]; // bottom face corners {0,1,2,3}, top face corners {4,5,6,7}
         // y = |corn[3]-corn[1]|
         // Compute difference and dot using DUNE functionality
         auto difference = (*(this -> geometry_.geomVector(std::integral_constant<int,3>()))).get(cellToPoint[3]).center();
@@ -1889,7 +1893,7 @@ std::array<std::vector<double>,3> CpGridData::getWidthsLengthsHeights(const std:
     for (int k = startIJK[2]; k < endIJK[2]; ++k)
     {
         int cellIdx = (k*grid_dim[0]*grid_dim[1]) + (startIJK[1]*grid_dim[0]) + startIJK[0];
-        const auto cellToPoint = cell_to_point_[cellIdx]; // bottom face corners {0,1,2,3}, top face corners {4,5,6,7}
+        const auto cellToPoint = cell_to_point_sk[cellIdx]; // bottom face corners {0,1,2,3}, top face corners {4,5,6,7}
         // z = |corn[4]-corn[0]|
         // Compute difference and dot using DUNE functionality
         auto difference = (*(this -> geometry_.geomVector(std::integral_constant<int,3>()))).get(cellToPoint[4]).center();
@@ -2329,9 +2333,9 @@ Geometry<3,3> CpGridData::cellifyPatch(const std::array<int,3>& startIJK, const 
         // Create a pointer to the first element of "cellfiedPatch_to_point" (required to construct a Geometry<3,3> object).
         const int* cellifiedPatch_indices_storage_ptr = &allcorners_cellifiedPatch[0];
         // Construct (and return) the Geometry<3,3> of the 'cellified patch'.
-        return Geometry<3,3>(cellifiedPatch_center, cellifiedPatch_volume,
-                             cellifiedPatch_geometry.geomVector(std::integral_constant<int,3>()),
-                             cellifiedPatch_indices_storage_ptr);
+        // return Geometry<3,3>(cellifiedPatch_center, cellifiedPatch_volume,
+        //                      cellifiedPatch_geometry.geomVector(std::integral_constant<int,3>()),
+        //                      cellifiedPatch_indices_storage_ptr);
     }
 }
 
@@ -2348,7 +2352,7 @@ CpGridData::refineSingleCell(const std::array<int,3>& cells_per_dim, const int& 
     std::shared_ptr<CpGridData> refined_grid_ptr = std::make_shared<CpGridData>(refined_data); // ccobj_
     auto& refined_grid = *refined_grid_ptr;
     DefaultGeometryPolicy& refined_geometries = refined_grid.geometry_;
-    std::vector<std::array<int,8>>& refined_cell_to_point = refined_grid.cell_to_point_;
+    std::vector<std::array<int,8>>& refined_cell_to_point = refined_grid.cell_to_point_sk;
     cpgrid::OrientedEntityTable<0,1>& refined_cell_to_face = refined_grid.cell_to_face_;
     Opm::SparseTable<int>& refined_face_to_point = refined_grid.face_to_point_sk;
     cpgrid::OrientedEntityTable<1,0>& refined_face_to_cell = refined_grid.face_to_cell_;
@@ -2357,7 +2361,7 @@ CpGridData::refineSingleCell(const std::array<int,3>& cells_per_dim, const int& 
     // Get parent cell
     const cpgrid::Geometry<3,3>& parent_cell = (*(geometry_.geomVector(std::integral_constant<int,0>())))[EntityRep<0>(parent_idx, true)];
     // Get parent cell corners.
-    const std::array<int,8>& parent_to_point = this->cell_to_point_[parent_idx];
+    const std::array<int,8>& parent_to_point = this->cell_to_point_sk[parent_idx];
     const std::set<int> nonRepeated_parentCorners(parent_to_point.begin(), parent_to_point.end());
     if (nonRepeated_parentCorners.size() != 8){
         OPM_THROW(std::logic_error, "Cell is not a hexahedron. Cannot be refined (yet).");
@@ -2487,7 +2491,7 @@ CpGridData::refinePatch(const std::array<int,3>& cells_per_dim, const std::array
     std::shared_ptr<CpGridData> refined_grid_ptr = std::make_shared<CpGridData>(refined_data); // ccobj_
     auto& refined_grid = *refined_grid_ptr;
     DefaultGeometryPolicy& refined_geometries = refined_grid.geometry_;
-    std::vector<std::array<int,8>>& refined_cell_to_point = refined_grid.cell_to_point_;
+    std::vector<std::array<int,8>>& refined_cell_to_point = refined_grid.cell_to_point_sk;
     cpgrid::OrientedEntityTable<0,1>& refined_cell_to_face = refined_grid.cell_to_face_;
     Opm::SparseTable<int>& refined_face_to_point = refined_grid.face_to_point_sk;
     cpgrid::OrientedEntityTable<1,0>& refined_face_to_cell = refined_grid.face_to_cell_;
@@ -2740,7 +2744,7 @@ void CpGridData::postAdapt()
 std::array<double,3> CpGridData::computeEclCentroid(const int idx) const
 {
     // The following computation is the same as the one used in Eclipse Grid.
-    const auto& cell_to_point_indices = this -> cell_to_point_[idx];
+    const auto& cell_to_point_indices = this -> cell_to_point_sk[idx];
     std::array<double,8> X;
     std::array<double,8> Y;
     std::array<double,8> Z;

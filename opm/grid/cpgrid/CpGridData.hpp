@@ -829,7 +829,7 @@ private:
                          DefaultGeometryPolicy& geometry,
                          std::vector<int>& aquiferCells,
                          const OrientedEntityTable<0, 1>& cell2Faces,
-                         const std::vector< std::array<int,8> >& cell2Points);
+                         const std::vector< std::array<std::size_t,8> >& cell2Points);
 
     // Representing the topology
     /** @brief Container for lookup of the faces attached to each cell. */
@@ -843,10 +843,11 @@ private:
      */
     cpgrid::OrientedEntityTable<1, 0> face_to_cell_;
     /** @brief Container for the lookup of the points for each face. */
-    Opm::SparseTable<std::size_t>             face_to_point_;
+    Opm::SparseTable<std::size_t>     face_to_point_;
     Opm::SparseTable<int>             face_to_point_sk;
     /** @brief Vector that contains an arrays of the points of each cell*/
-    std::vector< std::array<int,8> >       cell_to_point_;
+    std::vector< std::array<std::size_t,8> >       cell_to_point_;
+    std::vector< std::array<int,8> >       cell_to_point_sk;
     /** @brief The size of the underlying logical cartesian grid.
      *
      * In a Eclipse a cornerpoint grid has the same number of cells
@@ -1143,9 +1144,9 @@ struct Mover<DataHandle,3> : public BaseMover<DataHandle>
     {}
     void operator()(std::size_t from_cell_index,std::size_t to_cell_index)
     {
-        const std::array<int,8>& from_cell_points=
+        const std::array<std::size_t ,8>& from_cell_points=
             gatherView_->cell_to_point_[from_cell_index];
-        const std::array<int,8>& to_cell_points=
+        const std::array<std::size_t ,8>& to_cell_points=
             scatterView_->cell_to_point_[to_cell_index];
         for(std::size_t i=0; i<8; ++i)
         {
@@ -1185,7 +1186,7 @@ void CpGridData::scatterCodimData(DataHandle& data, CpGridData* global_data,
     CpGridData *gather_view, *scatter_view;
     gather_view=global_data;
     scatter_view=distributed_data;
-
+    std::cout<<"GAGAGAG"<< std::endl;
     mover::Mover<DataHandle,codim> mover(data, gather_view, scatter_view);
 
 
