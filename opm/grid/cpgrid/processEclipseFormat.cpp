@@ -99,7 +99,7 @@ namespace Dune
                        std::vector<int>& global_cell,
                        cpgrid::OrientedEntityTable<0, 1>& c2f,
                        cpgrid::OrientedEntityTable<1, 0>& f2c,
-                       Opm::SparseTable<int>& f2p,
+                       Opm::SparseTable<std::size_t>& f2p,
                        std::vector<std::array<int,8> >& c2p,
                        std::vector<int>& face_to_output_face);
         void buildGeom(const processed_grid& output,
@@ -1105,7 +1105,7 @@ namespace cpgrid
                        std::vector<int>& global_cell,
                        cpgrid::OrientedEntityTable<0, 1>& c2f,
                        cpgrid::OrientedEntityTable<1, 0>& f2c,
-                       Opm::SparseTable<int>& f2p,
+                       Opm::SparseTable<std::size_t>& f2p,
                        std::vector<std::array<int,8> >& c2p,
                        std::vector<int>& face_to_output_face)
         {

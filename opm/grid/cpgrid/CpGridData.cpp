@@ -643,12 +643,12 @@ private:
     std::vector<std::set<std::size_t> >& additionalPointIds_;
 };
 
-template<class Table, int from>
+template<class Table, size_t from>
 struct RowSizeDataHandle
 {
-    using DataType = int;
+    using DataType = size_t;
     RowSizeDataHandle(const Table& global,
-                      std::vector<int>& noEntries)
+                      std::vector<size_t>& noEntries)
         : global_(global), noEntries_(noEntries)
     {}
     bool fixedSize(int, int)
@@ -682,27 +682,27 @@ struct RowSizeDataHandle
     }
 private:
     const Table& global_;
-    std::vector<int>& noEntries_;
+    std::vector<size_t>& noEntries_;
 };
 
-template<int from>
+template<size_t from>
 struct SparseTableEntity
 {
-    SparseTableEntity(const Opm::SparseTable<int>& table)
+    SparseTableEntity(const Opm::SparseTable<size_t>& table)
         : table_(table)
     {}
-    int rowSize(const EntityRep<from>& index) const
+    size_t rowSize(const EntityRep<from>& index) const
     {
         return table_.rowSize(index.index());
     }
 private:
-    const Opm::SparseTable<int>& table_;
+    const Opm::SparseTable<size_t>& table_;
 };
 
 struct SparseTableDataHandle
 {
-    using Table = Opm::SparseTable<int>;
-    using DataType = int;
+    using Table = Opm::SparseTable<std::size_t>;
+    using DataType = std::size_t;
     static constexpr int from = 1;
     SparseTableDataHandle(const Table& global,
                           const LevelGlobalIdSet& globalIds,
@@ -735,7 +735,7 @@ struct SparseTableDataHandle
         const auto& entries = local_[t.index()];
         for (auto&& point : entries)
         {
-            int i{};
+            std::size_t i{};
             buffer.read(i);
             if ( point != std::numeric_limits<int>::max() )
             {
@@ -1251,12 +1251,12 @@ void computeFace2Point(CpGrid& grid,
                        const OrientedEntityTable<0, 1>& globalCell2Faces,
                        const LevelGlobalIdSet& globalIds,
                        const OrientedEntityTable<0, 1>& cell2Faces,
-                       const Opm::SparseTable<int>& globalFace2Points,
-                       Opm::SparseTable<int>& face2Points,
+                       const Opm::SparseTable<size_t>& globalFace2Points,
+                       Opm::SparseTable<std::size_t>& face2Points,
                        const std::map<int,int>& global2local,
                        std::size_t noFaces)
 {
-    std::vector<int> rowSizes(noFaces);
+    std::vector<std::size_t> rowSizes(noFaces);
     using EntityTable = SparseTableEntity<1>;
     using RowSizeDataHandle = RowSizeDataHandle<EntityTable, 1>;
     EntityTable wrappedGlobal(globalFace2Points);
@@ -1289,7 +1289,7 @@ void computeFace2Cell(CpGrid& grid,
                       const IndexSet& globalIndexSet,
                       std::size_t noFaces)
 {
-    std::vector<int> rowSizes(noFaces);
+    std::vector<size_t> rowSizes(noFaces);
     using Table = OrientedEntityTable<1,0>;
     RowSizeDataHandle<Table,1> rowSizeHandle(globalFace2Cells, rowSizes);
     FaceViaCellHandleWrapper<RowSizeDataHandle<Table,1> > wrappedSizeHandle(rowSizeHandle,
@@ -1330,7 +1330,7 @@ std::map<int,int> computeCell2Face(CpGrid& grid,
                                    std::vector<int>& map2Global,
                                    std::size_t noCells)
 {
-    std::vector<int> rowSizes(noCells);
+    std::vector<size_t> rowSizes(noCells);
     using Table = OrientedEntityTable<0,1>;
     RowSizeDataHandle<Table,0> rowSizeHandle(globalCell2Faces, rowSizes);
     grid.scatterData(rowSizeHandle);
@@ -1372,7 +1372,7 @@ std::map<int,int> computeCell2Face(CpGrid& grid,
 
 std::vector<std::set<std::size_t> > computeAdditionalFacePoints(const std::vector<std::array<int,8> >& globalCell2Points,
                                                         const OrientedEntityTable<0, 1>& globalCell2Faces,
-                                                        const Opm::SparseTable<int>& globalFace2Points,
+                                                        const Opm::SparseTable<std::size_t>& globalFace2Points,
                                                         const LevelGlobalIdSet& globalIds)
 {
     std::vector<std::set<std::size_t> > additionalFacePoints(globalCell2Points.size());
@@ -1440,7 +1440,7 @@ std::map<int,int> computeCell2Point(CpGrid& grid,
                                     const std::vector<std::array<int,8> >& globalCell2Points,
                                     const LevelGlobalIdSet& globalIds,
                                     const OrientedEntityTable<0, 1>& globalCell2Faces,
-                                    const Opm::SparseTable<int>& globalFace2Points,
+                                    const Opm::SparseTable<std::size_t>& globalFace2Points,
                                     std::vector<std::array<int,8> >& cell2Points,
                                     std::vector<int>& map2Global,
                                     std::size_t noCells,
@@ -2350,7 +2350,7 @@ CpGridData::refineSingleCell(const std::array<int,3>& cells_per_dim, const int& 
     DefaultGeometryPolicy& refined_geometries = refined_grid.geometry_;
     std::vector<std::array<int,8>>& refined_cell_to_point = refined_grid.cell_to_point_;
     cpgrid::OrientedEntityTable<0,1>& refined_cell_to_face = refined_grid.cell_to_face_;
-    Opm::SparseTable<int>& refined_face_to_point = refined_grid.face_to_point_;
+    Opm::SparseTable<int>& refined_face_to_point = refined_grid.face_to_point_sk;
     cpgrid::OrientedEntityTable<1,0>& refined_face_to_cell = refined_grid.face_to_cell_;
     cpgrid::EntityVariable<enum face_tag,1>& refined_face_tags = refined_grid.face_tag_;
     cpgrid::SignedEntityVariable<Dune::FieldVector<double,3>,1>& refined_face_normals = refined_grid.face_normals_;
@@ -2489,7 +2489,7 @@ CpGridData::refinePatch(const std::array<int,3>& cells_per_dim, const std::array
     DefaultGeometryPolicy& refined_geometries = refined_grid.geometry_;
     std::vector<std::array<int,8>>& refined_cell_to_point = refined_grid.cell_to_point_;
     cpgrid::OrientedEntityTable<0,1>& refined_cell_to_face = refined_grid.cell_to_face_;
-    Opm::SparseTable<int>& refined_face_to_point = refined_grid.face_to_point_;
+    Opm::SparseTable<int>& refined_face_to_point = refined_grid.face_to_point_sk;
     cpgrid::OrientedEntityTable<1,0>& refined_face_to_cell = refined_grid.face_to_cell_;
     cpgrid::EntityVariable<enum face_tag,1>& refined_face_tags = refined_grid.face_tag_;
     cpgrid::SignedEntityVariable<Dune::FieldVector<double,3>,1>& refined_face_normals = refined_grid.face_normals_;
