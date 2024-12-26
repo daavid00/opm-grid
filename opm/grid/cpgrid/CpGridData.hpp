@@ -1126,7 +1126,7 @@ struct Mover<DataHandle,1> : public BaseMover<DataHandle>
         row_type from_faces=table.operator[](from_cell);
         row_type to_faces=scatterView_->cell_to_face_[to_cell];
 
-        for(int i=0; i<from_faces.size(); ++i)
+        for(std::size_t i=0; i<from_faces.size(); ++i)
             this->moveData(from_faces[i], to_faces[i]);
     }
     CpGridData *gatherView_;
