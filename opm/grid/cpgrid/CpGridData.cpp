@@ -1377,18 +1377,18 @@ std::vector<std::set<std::size_t> > computeAdditionalFacePoints(const std::vecto
 {
     std::vector<std::set<std::size_t> > additionalFacePoints(globalCell2Points.size());
 
-    for ( std::size_t c = 0; c < globalCell2Points.size(); ++c)
-    {
-        const auto& points = globalCell2Points[c];
-        for(const auto& face: globalCell2Faces[EntityRep<0>(c, true)])
-            for(const auto& point: globalFace2Points[face.index()])
-            {
-                auto candidate = std::find(points.begin(), points.end(), point);
-                if(candidate == points.end())
-                    // point is not a corner of the cell
-                    additionalFacePoints[c].insert(globalIds.id(EntityRep<3>(point,true)));
-            }
-    }
+    // for ( std::size_t c = 0; c < globalCell2Points.size(); ++c)
+    // {
+    //     const auto& points = globalCell2Points[c];
+    //     for(const auto& face: globalCell2Faces[EntityRep<0>(c, true)])
+    //         for(const auto& point: globalFace2Points[face.index()])
+    //         {
+    //             auto candidate = std::find(points.begin(), points.end(), point);
+    //             if(candidate == points.end())
+    //                 // point is not a corner of the cell
+    //                 additionalFacePoints[c].insert(globalIds.id(EntityRep<3>(point,true)));
+    //         }
+    // }FIXTHIS
     return additionalFacePoints;
 }
 
