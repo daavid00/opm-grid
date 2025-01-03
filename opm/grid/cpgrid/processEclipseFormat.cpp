@@ -1390,7 +1390,7 @@ namespace cpgrid
 //                            cell_volumes.begin(),
 //                            std::back_inserter(cell_geom, mcellg);
             for (std::size_t c = 0;  c < nc; ++c) {
-                cell_geom.push_back(mcellg(cell_centroids[c], cell_volumes[c], c2p[c])); //FIXTHIS
+                cell_geom.push_back(mcellg(cell_centroids[c], cell_volumes[c], c2p[c]));
             }
             // Faces
             face_geom.reserve(face_centroids.size());

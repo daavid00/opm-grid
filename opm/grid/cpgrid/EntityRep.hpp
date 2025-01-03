@@ -105,6 +105,10 @@ namespace Dune
                 : entityrep_(0)
             {
             }
+            EntityRep(std::size_t index_arg, bool orientation_arg)
+                : entityrep_(orientation_arg ? index_arg : ~index_arg)
+            {
+            }
             /// @brief Constructor taking an entity index and an orientation.
             /// @param index_arg Entity index
             /// @param orientation_arg True if the entity's orientation is positive.

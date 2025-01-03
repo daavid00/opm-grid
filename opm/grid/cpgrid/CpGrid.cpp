@@ -531,8 +531,9 @@ CpGrid::scatterGrid(EdgeWeightMethod method,
         // Interface will communicate from owner to all
         setupSendInterface(exportList, *cell_scatter_gather_interfaces_);
         setupRecvInterface(importList, *cell_scatter_gather_interfaces_);
-
+        std::cout<<"ATFIRST"<< std::endl;
         distributed_data_[0]->distributeGlobalGrid(*this,*this->current_view_data_, computedCellPart);
+        std::cout<<"DONE"<< std::endl;
         (*global_id_set_ptr_).insertIdSet(*distributed_data_[0]);
         distributed_data_[0]-> index_set_.reset(new cpgrid::IndexSet(distributed_data_[0]->cell_to_face_.size(),
                                                                      distributed_data_[0]-> geomVector<3>().size()));
@@ -2664,8 +2665,10 @@ const std::map<std::string,int>& CpGrid::getLgrNameToLevel() const{
     return lgr_names_;
 }
 
-std::array<double,3> CpGrid::getEclCentroid(const int& elemIdx) const
+std::array<double,3> CpGrid::getEclCentroid(const std::size_t& elemIdx) const
 {
+    auto hola = this-> current_view_data_ -> computeEclCentroid(elemIdx);
+    std::cout<<"cellcentroids?"<< hola[0] << hola[1] << "zets" << hola[2] << "ind" << elemIdx << std::endl;
     return this-> current_view_data_ -> computeEclCentroid(elemIdx);
 }
 

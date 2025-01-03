@@ -237,7 +237,7 @@ int getIndex(const int* i)
 template<class T>
 int getIndex(T i)
 {
-    return i->index();//i->index() //FIXTHIS
+    return *i;//i->index() //FIXTHIS
 }
 
 template<class C>
@@ -936,10 +936,10 @@ private:
 template<class T>
 struct AttributeDataHandle
 {
-    typedef std::pair<int,char> DataType;
+    typedef std::pair<std::size_t,char> DataType;
 
     AttributeDataHandle(int rank, const PartitionTypeIndicator& indicator,
-                        std::vector<std::map<int, char> >& vals,
+                        std::vector<std::map<std::size_t, char> >& vals,
                         const T& cell_to_entity,
                         const CpGridData& grid)
         : rank_(rank), indicator_(indicator), vals_(vals),
@@ -973,14 +973,14 @@ struct AttributeDataHandle
         for(RowIter f=c2e_[i].begin(), fend=c2e_[i].end();
             f!=fend; ++f, --s)
         {
-            std::pair<int,char> rank_attr;
+            std::pair<std::size_t,char> rank_attr;
             buffer.read(rank_attr);
             vals_[getIndex(f)].insert(rank_attr);
         }
     }
     int rank_;
     const PartitionTypeIndicator& indicator_;
-    std::vector<std::map<int, char> >& vals_;
+    std::vector<std::map<std::size_t, char> >& vals_;
     const T& c2e_;
     const CpGridData& grid_;
 };
@@ -1162,14 +1162,14 @@ private:
  * \param func The functor.
  */
 template<class Functor, class T>
-void iterate_over_attributes(std::vector<std::map<int,char> >& attributes,
+void iterate_over_attributes(std::vector<std::map<std::size_t,char> >& attributes,
                              T my_attribute_iter, Functor& func)
 {
-    typedef typename std::vector<std::map<int,char> >::const_iterator Iter;
+    typedef typename std::vector<std::map<std::size_t,char> >::const_iterator Iter;
     for(Iter begin=attributes.begin(), i=begin, end=attributes.end(); i!=end;
         ++i, ++my_attribute_iter)
     {
-        typedef typename std::map<int,char>::const_iterator MIter;
+        typedef typename std::map<std::size_t,char>::const_iterator MIter;
         for(MIter m=i->begin(), mend=i->end(); m!=mend; ++m)
         {
             func(m->first,i-begin,PartitionType(*my_attribute_iter), PartitionType(m->second));
@@ -1186,7 +1186,7 @@ void iterate_over_attributes(std::vector<std::map<int,char> >& attributes,
  * \param[out] interfaces The tuple with the interface maps for communication.
  */
 template<class InterfaceMap,class T>
-void createInterfaces(std::vector<std::map<int,char> >& attributes,
+void createInterfaces(std::vector<std::map<std::size_t,char> >& attributes,
                       T partition_type_iterator,
                       std::tuple<InterfaceMap,InterfaceMap,InterfaceMap,InterfaceMap,InterfaceMap>&
                       interfaces)
@@ -1234,6 +1234,8 @@ void CpGridData::computeGeometry(CpGrid& grid,
     FaceViaCellHandleWrapper<FaceGeometryHandle>
         wrappedFaceGeomHandle(faceGeomHandle, globalCell2Faces, cell2Faces);
     std::cout<<"ANTES"<< std::endl;
+    std::cout<<std::numeric_limits<int>::max()<< std::endl;
+    std::cout<<std::numeric_limits<std::size_t>::max()<< std::endl;
     grid.scatterData(wrappedFaceGeomHandle);
 
     PointGeometryHandle pointGeomHandle(*globalGeometry.geomVector(std::integral_constant<int,3>()),
@@ -1302,7 +1304,7 @@ void computeFace2Cell(CpGrid& grid,
     {
         for (auto&& face : face2Cells.row(EntityRep<1>(row, true)))
         {
-            face = EntityRep<0>(std::numeric_limits<int>::max(), true);
+            face = EntityRep<0>(std::numeric_limits<std::size_t>::max(), true);  
         }
     }
     IndexSet2IdSet<IndexSet> local2Global(globalIndexSet);
@@ -1477,6 +1479,7 @@ std::map<std::size_t,std::size_t> computeCell2Point(CpGrid& grid,
         for (auto&& point : points)
         {
             point = map2Local[point];
+            //std::cout<<map2Local[point]<< "ilocal" << std::endl;
         }
     }
 
@@ -1558,8 +1561,9 @@ void CpGridData::distributeGlobalGrid(CpGrid& grid,
 
     logical_cartesian_size_=view_data.logical_cartesian_size_;
 
-    std::cout<<noExistingPoints<< std::endl;
-    std::cout<<noExistingFaces<< std::endl;
+    //std::cout<<noExistingPoints<< std::endl;
+    //std::cout<<cell_to_face_.size()<< "tamano" << std::endl;
+    //std::cout<<view_data.cell_to_face_.size()<< "tamano2" << std::endl;
 
     // Set up the new topology arrays
     geometry_.geomVector(std::integral_constant<int,1>()) -> resize(noExistingFaces);
@@ -1657,7 +1661,7 @@ void CpGridData::computePointPartitionType()
 #endif
 }
 
-void CpGridData::computeCommunicationInterfaces([[maybe_unused]] int noExistingPoints)
+void CpGridData::computeCommunicationInterfaces([[maybe_unused]] std::size_t noExistingPoints)
 {
 #if HAVE_MPI
     // Compute the interface information for cells
@@ -1696,11 +1700,11 @@ void CpGridData::computeCommunicationInterfaces([[maybe_unused]] int noExistingP
     face_interfaces_);
     std::vector<std::map<int,char> >().swap(face_attributes);
     */
-    std::vector<std::map<int,char> > point_attributes(noExistingPoints);
-    AttributeDataHandle<std::vector<std::array<int,8> > >
+    std::vector<std::map<std::size_t,char> > point_attributes(noExistingPoints);
+    AttributeDataHandle<std::vector<std::array<std::size_t,8> > >
         point_handle(ccobj_.rank(), *partition_type_indicator_,
-                     point_attributes, cell_to_point_sk, *this);
-    std::cout<<"DESPUES"<< std::endl;
+                     point_attributes, cell_to_point_, *this);
+    std::cout<<"WHATTHE"<< std::endl;
     if( static_cast<const Dune::Interface&>(std::get<All_All_Interface>(cell_interfaces_))
         .interfaces().size() )
     {
@@ -2741,10 +2745,10 @@ void CpGridData::postAdapt()
     mark_.resize(this->size(0), 0);
 }
 
-std::array<double,3> CpGridData::computeEclCentroid(const int idx) const
+std::array<double,3> CpGridData::computeEclCentroid(const std::size_t& idx) const
 {
     // The following computation is the same as the one used in Eclipse Grid.
-    const auto& cell_to_point_indices = this -> cell_to_point_sk[idx];
+    const auto& cell_to_point_indices = this -> cell_to_point_[idx];
     std::array<double,8> X;
     std::array<double,8> Y;
     std::array<double,8> Z;
@@ -2755,6 +2759,7 @@ std::array<double,3> CpGridData::computeEclCentroid(const int idx) const
                       -> get(cell_to_point_indices[cornIdx])).center()[1];
         Z[cornIdx] = (this-> geometry_.geomVector(std::integral_constant<int,3>())
                       -> get(cell_to_point_indices[cornIdx])).center()[2];
+        //std::cout<<"idxs"<< cell_to_point_indices[cornIdx]<<"xxxx" << X[cornIdx]  << std::endl;
 
     }
     return std::array<double,3> { { std::accumulate(X.begin(), X.end(), 0.0) / 8.0,

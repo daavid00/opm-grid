@@ -593,7 +593,7 @@ public:
     //        Return average of the previous computations.
     // @param [in]   int   Index of a cell.
     // @return            'eclipse centroid'
-    std::array<double,3> computeEclCentroid(const int idx) const;
+    std::array<double,3> computeEclCentroid(const std::size_t& idx) const;
 
     // @breif Compute center of an entity/element/cell in the Eclipse way:
     //        - Average of the 4 corners of the bottom face.
@@ -678,7 +678,7 @@ public:
 
     void computePointPartitionType();
 
-    void computeCommunicationInterfaces(int noexistingPoints);
+    void computeCommunicationInterfaces(std::size_t noexistingPoints);
 
     /// \brief The type of the mpi communicator.
     using MPICommunicator = CpGridDataTraits::MPICommunicator ;
