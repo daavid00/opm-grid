@@ -1572,7 +1572,7 @@ void CpGrid::populateLeafGlobalIdSet()
         leafPointIds[point.index()] = (*current_data_)[level_pointLevelIdx[0]]->global_id_set_->id(pointLevelEntity);
     }
 
-    current_data_->back()->global_id_set_->swap(leafCellIds, leafFaceIds, leafPointIds);
+    //current_data_->back()->global_id_set_->swap(leafCellIds, leafFaceIds, leafPointIds);FIXTHIS
 }
 
 double CpGrid::cellCenterDepth(int cell_index) const
@@ -2517,9 +2517,9 @@ bool CpGrid::adapt(const std::vector<std::array<int,3>>& cells_per_dim_vec,
         for (std::size_t level = 1; level < cells_per_dim_vec.size()+1; ++level) {
             // Global id set for each (refined) level grid.
             if(lgr_with_at_least_one_active_cell[level-1]>0) { // Check if LGR is active in currect process.
-                (*current_data_)[level]->global_id_set_->swap(localToGlobal_cells_per_level[level-1],
-                                                              localToGlobal_faces_per_level[level-1],
-                                                              localToGlobal_points_per_level[level-1]);
+                // (*current_data_)[level]->global_id_set_->swap(localToGlobal_cells_per_level[level-1],
+                //                                               localToGlobal_faces_per_level[level-1],
+                //                                               localToGlobal_points_per_level[level-1]);FIXTHIS
             }
         }
 

@@ -584,7 +584,7 @@ struct Cell2PointsDataHandle
                           const LevelGlobalIdSet& globalIds,
                           const std::vector<std::set<int> >& globalAdditionalPointIds,
                           Vector& localCell2Points,
-                          std::vector<int>& flatGlobalPoints,
+                          std::vector<std::size_t>& flatGlobalPoints,
                           std::vector<std::set<int> >& additionalPointIds)
         : globalCell2Points_(globalCell2Points), globalIds_(globalIds), globalAdditionalPointIds_(globalAdditionalPointIds),
           localCell2Points_(localCell2Points), flatGlobalPoints_(flatGlobalPoints), additionalPointIds_(additionalPointIds)
@@ -639,7 +639,7 @@ private:
     const LevelGlobalIdSet& globalIds_;
     const std::vector<std::set<int> >& globalAdditionalPointIds_;
     Vector& localCell2Points_;
-    std::vector<int>& flatGlobalPoints_;
+    std::vector<std::size_t>& flatGlobalPoints_;
     std::vector<std::set<int> >& additionalPointIds_;
 };
 
@@ -825,7 +825,7 @@ class C2FDataHandle
 {
 public:
     C2FDataHandle(const Table& global, const LevelGlobalIdSet& globalIds, Table& local,
-                  std::vector<int>& unsignedGlobalFaceIds)
+                  std::vector<std::size_t>& unsignedGlobalFaceIds)
         : OrientedEntityTableDataHandle<LevelGlobalIdSet,0,1>(global, local, &globalIds),
           unsignedGlobalFaceIds_(unsignedGlobalFaceIds)
     {}
@@ -856,7 +856,7 @@ public:
         OPM_THROW(std::logic_error, "This should never throw!");
     }
 private:
-    std::vector<int>& unsignedGlobalFaceIds_;
+    std::vector<std::size_t>& unsignedGlobalFaceIds_;
 };
 
 template<class IndexSet>
@@ -1327,7 +1327,7 @@ std::map<int,int> computeCell2Face(CpGrid& grid,
                                    const OrientedEntityTable<0, 1>& globalCell2Faces,
                                    const LevelGlobalIdSet& globalIds,
                                    OrientedEntityTable<0, 1>& cell2Faces,
-                                   std::vector<int>& map2Global,
+                                   std::vector<std::size_t>& map2Global,
                                    std::size_t noCells)
 {
     std::vector<int> rowSizes(noCells);
@@ -1442,7 +1442,7 @@ std::map<int,int> computeCell2Point(CpGrid& grid,
                                     const OrientedEntityTable<0, 1>& globalCell2Faces,
                                     const Opm::SparseTable<int>& globalFace2Points,
                                     std::vector<std::array<int,8> >& cell2Points,
-                                    std::vector<int>& map2Global,
+                                    std::vector<std::size_t>& map2Global,
                                     std::size_t noCells,
                                     const typename CpGridData::InterfaceMap& cellInterfaces,
                                     typename CpGridData::InterfaceMap& pointInterfaces
@@ -1523,8 +1523,8 @@ void CpGridData::distributeGlobalGrid(CpGrid& grid,
     // Now we need to compute the existing faces and points. Either exist
     // if they are reachable from an existing cell.
     // We use std::numeric_limits<int>::max() to indicate non-existent entities.
-    std::vector<int> map2GlobalFaceId;
-    std::vector<int> map2GlobalPointId;
+    std::vector<std::size_t> map2GlobalFaceId;
+    std::vector<std::size_t> map2GlobalPointId;
     std::map<int,int> point_indicator =
         computeCell2Point(grid, view_data.cell_to_point_, *view_data.global_id_set_, view_data.cell_to_face_,
                           view_data.face_to_point_, cell_to_point_,
@@ -1534,7 +1534,7 @@ void CpGridData::distributeGlobalGrid(CpGrid& grid,
 
     // create global ids array for cells. The parallel index set uses the global id
     // as the global index.
-    std::vector<int> map2GlobalCellId(cell_indexset.size());
+    std::vector<std::size_t> map2GlobalCellId(cell_indexset.size());
     for(const auto& i: cell_indexset)
     {
         map2GlobalCellId[i.local()]=i.global();

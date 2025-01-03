@@ -35,9 +35,9 @@ public:
     /// \param faceMapping A vector with global id of index i at position i.
     /// \param pointMapping A vector with global id of index i at position i.
 
-    void swap(std::vector<int>& cellMapping,
-              std::vector<int>& faceMapping,
-              std::vector<int>& pointMapping)
+    void swap(std::vector<std::size_t>& cellMapping,
+              std::vector<std::size_t>& faceMapping,
+              std::vector<std::size_t>& pointMapping)
     {
         cellMapping_.swap(cellMapping);
         faceMapping_.swap(faceMapping);
@@ -46,7 +46,7 @@ public:
     /// \brief Get the vector with the mappings for a codimension
     /// \tparam codim The codimension.
     template<int codim>
-    std::vector<int>& getMapping()
+    std::vector<std::size_t>& getMapping()
     {
         static_assert(codim == 0 || codim == 1 || codim==3,
                       "Mappings only available for codimension 0, 1, and 3");
@@ -60,7 +60,7 @@ public:
     /// \brief Get the vector with the mappings for a codimension
     /// \tparam codim The codimension.
     template<int codim>
-    const std::vector<int>& getMapping() const
+    const std::vector<std::size_t>& getMapping() const
     {
         static_assert(codim == 0 || codim == 1 || codim==3,
                       "Mappings only available for codimension 0, 1, and 3");
@@ -72,11 +72,11 @@ public:
     }
 protected:
     /// \brief A vector containing the global id of cell with index i at position i.
-    std::vector<int> cellMapping_;
+    std::vector<std::size_t> cellMapping_;
     /// \brief A vector containing the global id of face with index i at position i.
-    std::vector<int> faceMapping_;
+    std::vector<std::size_t> faceMapping_;
     /// \brief A vector containing the global id of point with index i at position i.
-    std::vector<int> pointMapping_;
+    std::vector<std::size_t> pointMapping_;
 };
 }
 }
