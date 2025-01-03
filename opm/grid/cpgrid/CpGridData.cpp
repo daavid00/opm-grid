@@ -1450,15 +1450,18 @@ std::map<int,int> computeCell2Point(CpGrid& grid,
 {
     cell2Points.resize(noCells);
     map2Global.reserve(noCells*8*1.1);
-    auto globalAdditionalPoints = computeAdditionalFacePoints(globalCell2Points, globalCell2Faces,
-                                                              globalFace2Points,
-                                                              globalIds);
+    std::cout << "noCells " <<  noCells << " globalFace2Points " <<  globalFace2Points.size() << " globalCell2Faces " <<  globalCell2Faces.size() << " globalCell2Points " <<  globalCell2Points.size() << " mpi " <<  Dune::MPIHelper::getCommunicator() << std::endl;
+    // auto globalAdditionalPoints = computeAdditionalFacePoints(globalCell2Points, globalCell2Faces,
+    //                                                           globalFace2Points,
+    //                                                           globalIds);
+    std::vector<std::set<int> > globalAdditionalPoints(globalCell2Points.size());
     std::vector<std::set<int> > additionalPoints(noCells);
     Cell2PointsDataHandle handle(globalCell2Points, globalIds,
                                  globalAdditionalPoints,
                                  cell2Points,
                                  map2Global,
                                  additionalPoints);
+    std::cout << "before grid.scatterData(handle)" << std::endl;
     grid.scatterData(handle);
     // make map2Global a map from local index to global id
     std::sort(map2Global.begin(),map2Global.end());
@@ -1472,6 +1475,7 @@ std::map<int,int> computeCell2Point(CpGrid& grid,
     std::generate_n(std::inserter(map2Local, map2Local.begin()),
                     map2Global.size(),
                     [&localId, &current_global](){ return std::make_pair(*(current_global++), localId++); });
+    std::cout << "before for (auto&& points : cell2Points)" << std::endl;
     for (auto&& points : cell2Points)
     {
         for (auto&& point : points)
@@ -1481,7 +1485,7 @@ std::map<int,int> computeCell2Point(CpGrid& grid,
     }
 
     // Create interfaces for point communication
-
+    std::cout << "for ( const auto& procCellLists: cellInterfaces)" << std::endl;
     for ( const auto& procCellLists: cellInterfaces)
     {
         // The send list
@@ -1531,7 +1535,7 @@ void CpGridData::distributeGlobalGrid(CpGrid& grid,
                           map2GlobalPointId, cell_indexset.size(),
                           *grid.cell_scatter_gather_interfaces_,
                           *grid.point_scatter_gather_interfaces_);
-
+    std::cout << "after computeCell2Point" << std::endl;
     // create global ids array for cells. The parallel index set uses the global id
     // as the global index.
     std::vector<int> map2GlobalCellId(cell_indexset.size());
@@ -1539,7 +1543,7 @@ void CpGridData::distributeGlobalGrid(CpGrid& grid,
     {
         map2GlobalCellId[i.local()]=i.global();
     }
-
+    std::cout << "before computeCell2Face" << std::endl;
     std::map<int,int> face_indicator =
         computeCell2Face(grid, view_data.cell_to_face_, *view_data.global_id_set_, cell_to_face_,
                          map2GlobalFaceId, cell_indexset.size());
