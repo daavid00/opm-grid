@@ -582,10 +582,10 @@ struct Cell2PointsDataHandle
     using Vector = std::vector<std::array<int,8> >;
     Cell2PointsDataHandle(const Vector& globalCell2Points,
                           const LevelGlobalIdSet& globalIds,
-                          const std::vector<std::set<int> >& globalAdditionalPointIds,
+                          const std::vector<std::set<std::size_t> >& globalAdditionalPointIds,
                           Vector& localCell2Points,
                           std::vector<std::size_t>& flatGlobalPoints,
-                          std::vector<std::set<int> >& additionalPointIds)
+                          std::vector<std::set<std::size_t> >& additionalPointIds)
         : globalCell2Points_(globalCell2Points), globalIds_(globalIds), globalAdditionalPointIds_(globalAdditionalPointIds),
           localCell2Points_(localCell2Points), flatGlobalPoints_(flatGlobalPoints), additionalPointIds_(additionalPointIds)
     {}
@@ -637,10 +637,10 @@ struct Cell2PointsDataHandle
 private:
     const Vector& globalCell2Points_;
     const LevelGlobalIdSet& globalIds_;
-    const std::vector<std::set<int> >& globalAdditionalPointIds_;
+    const std::vector<std::set<std::size_t> >& globalAdditionalPointIds_;
     Vector& localCell2Points_;
     std::vector<std::size_t>& flatGlobalPoints_;
-    std::vector<std::set<int> >& additionalPointIds_;
+    std::vector<std::set<std::size_t> >& additionalPointIds_;
 };
 
 template<class Table, int from>
@@ -1370,12 +1370,12 @@ std::map<int,int> computeCell2Face(CpGrid& grid,
     return map2Local;
 }
 
-std::vector<std::set<int> > computeAdditionalFacePoints(const std::vector<std::array<int,8> >& globalCell2Points,
+std::vector<std::set<std::size_t> > computeAdditionalFacePoints(const std::vector<std::array<int,8> >& globalCell2Points,
                                                         const OrientedEntityTable<0, 1>& globalCell2Faces,
                                                         const Opm::SparseTable<int>& globalFace2Points,
                                                         const LevelGlobalIdSet& globalIds)
 {
-    std::vector<std::set<int> > additionalFacePoints(globalCell2Points.size());
+    std::vector<std::set<std::size_t> > additionalFacePoints(globalCell2Points.size());
 
     for ( std::size_t c = 0; c < globalCell2Points.size(); ++c)
     {
@@ -1395,7 +1395,7 @@ std::vector<std::set<int> > computeAdditionalFacePoints(const std::vector<std::a
 template<bool send, class Map2Global, class Map2Local>
 void createInterfaceList(const typename CpGridData::InterfaceMap::value_type& procCellLists,
                          const std::vector<std::array<int,8> >& cell2Points,
-                         const std::vector<std::set<int> >& additionalPoints,
+                         const std::vector<std::set<std::size_t> >& additionalPoints,
                          const Map2Global& local2Global,
                          Map2Local& map2Local,
                          typename CpGridData::InterfaceMap::mapped_type& pointLists
@@ -1404,7 +1404,7 @@ void createInterfaceList(const typename CpGridData::InterfaceMap::value_type& pr
     const auto& cellList = send? procCellLists.second.first : procCellLists.second.second;
 
     // Create list of global ids from cell lists
-    std::vector<int> tmpPoints;
+    std::vector<std::size_t> tmpPoints;
     std::size_t noAdditional{};
     for (auto const& addPoints: additionalPoints)
         noAdditional += addPoints.size();
@@ -1453,7 +1453,7 @@ std::map<int,int> computeCell2Point(CpGrid& grid,
     auto globalAdditionalPoints = computeAdditionalFacePoints(globalCell2Points, globalCell2Faces,
                                                               globalFace2Points,
                                                               globalIds);
-    std::vector<std::set<int> > additionalPoints(noCells);
+    std::vector<std::set<std::size_t> > additionalPoints(noCells);
     Cell2PointsDataHandle handle(globalCell2Points, globalIds,
                                  globalAdditionalPoints,
                                  cell2Points,
