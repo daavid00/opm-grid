@@ -1451,9 +1451,10 @@ std::map<std::size_t,std::size_t> computeCell2Point(CpGrid& grid,
     cell2Points.resize(noCells);
     map2Global.reserve(noCells*8*1.1);
     std::cout << "noCells " <<  noCells << " globalFace2Points " <<  globalFace2Points.size() << " globalCell2Faces " <<  globalCell2Faces.size() << " globalCell2Points " <<  globalCell2Points.size() << " mpi " <<  Dune::MPIHelper::getCommunicator() << std::endl;
-    std::vector<std::set<std::size_t> > globalAdditionalPoints = computeAdditionalFacePoints(globalCell2Points, globalCell2Faces,
-                                                              globalFace2Points,
-                                                              globalIds);
+    // std::vector<std::set<std::size_t> > globalAdditionalPoints = computeAdditionalFacePoints(globalCell2Points, globalCell2Faces,
+    //                                                           globalFace2Points,
+    //                                                           globalIds);FIXTHIS
+    std::vector<std::set<std::size_t> > globalAdditionalPoints(globalCell2Points.size());
     std::vector<std::set<std::size_t> > additionalPoints(noCells);
     Cell2PointsDataHandle handle(globalCell2Points, globalIds,
                                  globalAdditionalPoints,
