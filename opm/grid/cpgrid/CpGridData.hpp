@@ -843,7 +843,8 @@ private:
      */
     cpgrid::OrientedEntityTable<1, 0> face_to_cell_;
     /** @brief Container for the lookup of the points for each face. */
-    Opm::SparseTable<int>             face_to_point_;
+    Opm::SparseTable<unsigned>             face_to_point_;
+    Opm::SparseTable<int>                  face_to_point_sk;
     /** @brief Vector that contains an arrays of the points of each cell*/
     std::vector< std::array<int,8> >       cell_to_point_;
     /** @brief The size of the underlying logical cartesian grid.
@@ -1348,7 +1349,7 @@ void CpGridData::gatherCodimData(DataHandle& data, CpGridData* global_data,
                    MPITraits<typename DataHandle::DataType>::getType(),
                    distributed_data->ccobj_);
     Entity2IndexDataHandle<DataHandle, codim> edata(*global_data, data);
-    int offset=0;
+    unsigned offset=0;
     for(int i=0; i< codim; ++i)
         offset+=global_data->size(i);
 
@@ -1357,7 +1358,7 @@ void CpGridData::gatherCodimData(DataHandle& data, CpGridData* global_data,
             end=global_indices.end();
         i!=end; ++s, ++i)
     {
-        edata.scatter(global_data_buffer, *i-offset, *s);
+        edata.scatter(global_data_buffer, static_cast<unsigned>(*i)-offset, *s);
     }
 #endif
 }

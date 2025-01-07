@@ -2041,7 +2041,7 @@ bool CpGrid::adapt(const std::vector<std::array<int,3>>& cells_per_dim_vec,
     Dune::cpgrid::DefaultGeometryPolicy&                         adapted_geometries = adaptedGrid.geometry_;
     std::vector<std::array<int,8>>&                              adapted_cell_to_point = adaptedGrid.cell_to_point_;
     cpgrid::OrientedEntityTable<0,1>&                            adapted_cell_to_face = adaptedGrid.cell_to_face_;
-    Opm::SparseTable<int>&                                       adapted_face_to_point = adaptedGrid.face_to_point_;
+    Opm::SparseTable<int>&                                       adapted_face_to_point = adaptedGrid.face_to_point_sk;
     cpgrid::OrientedEntityTable<1,0>&                            adapted_face_to_cell = adaptedGrid.face_to_cell_;
     cpgrid::EntityVariable<enum face_tag,1>&                     adapted_face_tags = adaptedGrid.face_tag_;
     cpgrid::SignedEntityVariable<Dune::FieldVector<double,3>,1>& adapted_face_normals = adaptedGrid.face_normals_;
@@ -2338,7 +2338,7 @@ bool CpGrid::adapt(const std::vector<std::array<int,3>>& cells_per_dim_vec,
         (*data[refinedLevelGridIdx]).cell_to_point_.swap(refined_cell_to_point_vec[level]);
         (*data[refinedLevelGridIdx]).cell_to_face_.swap(refined_cell_to_face_vec[level]);
 
-        (*data[refinedLevelGridIdx]).face_to_point_.swap(refined_face_to_point_vec[level]);
+        (*data[refinedLevelGridIdx]).face_to_point_sk.swap(refined_face_to_point_vec[level]);
         (*data[refinedLevelGridIdx]).face_to_cell_.swap(refined_face_to_cell_vec[level]);
 
         cpgrid::EntityVariable<enum face_tag,1>& level_face_tags =   (*data[refinedLevelGridIdx]).face_tag_;
@@ -3391,7 +3391,7 @@ void CpGrid::populateLeafGridFaces(Dune::cpgrid::EntityVariableBase<cpgrid::Geom
         // Get the face normal.
         mutable_face_normals[face] = grid_or_elemLgr_data.face_normals_[elemLgrFaceEntity];
         // Get face_to_point_ before adapting - we need to replace the level corners by the adapted ones.
-        const auto& preAdapt_face_to_point = grid_or_elemLgr_data.face_to_point_[elemLgrFace];
+        const auto& preAdapt_face_to_point = grid_or_elemLgr_data.face_to_point_sk[elemLgrFace];
         // Add the amount of points to the count num_points.
         num_points += preAdapt_face_to_point.size();
 
@@ -3479,7 +3479,7 @@ void CpGrid::populateRefinedFaces(std::vector<Dune::cpgrid::EntityVariableBase<c
             // Get the face normal.
             mutable_refined_face_normals_vec[shiftedLevel][face] = markedElem_to_itsLgr.at(elemLgr)->face_normals_[elemLgrFaceEntity];
             // Get face_to_point_ before adapting - we need to replace the level corners by the adapted ones.
-            Opm::SparseTable<int>::mutable_row_type preAdapt_face_to_point = markedElem_to_itsLgr.at(elemLgr)->face_to_point_[elemLgrFace];
+            Opm::SparseTable<int>::mutable_row_type preAdapt_face_to_point = markedElem_to_itsLgr.at(elemLgr)->face_to_point_sk[elemLgrFace];
             // Add the amount of points to the count num_points.
             refined_num_points += preAdapt_face_to_point.size();
 

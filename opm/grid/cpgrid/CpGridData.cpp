@@ -699,6 +699,20 @@ private:
     const Opm::SparseTable<int>& table_;
 };
 
+template<int from>
+struct SparseTableEntity2
+{
+    SparseTableEntity2(const Opm::SparseTable<unsigned>& table)
+        : table_(table)
+    {}
+    int rowSize(const EntityRep<from>& index) const
+    {
+        return table_.rowSize(index.index());
+    }
+private:
+    const Opm::SparseTable<unsigned>& table_;
+};
+
 struct SparseTableDataHandle
 {
     using Table = Opm::SparseTable<int>;
@@ -736,6 +750,62 @@ struct SparseTableDataHandle
         for (auto&& point : entries)
         {
             int i{};
+            buffer.read(i);
+            if ( point != std::numeric_limits<int>::max() )
+            {
+                // face already processed
+                continue;
+            }
+            auto candidate = global2Local_.find(i);
+            assert(candidate != global2Local_.end());
+            point = candidate->second;
+        }
+    }
+private:
+    const Table& global_;
+    const LevelGlobalIdSet& globalIds_;
+    Table& local_;
+    const std::map<int,int>& global2Local_;
+};
+
+
+struct SparseTableDataHandle2
+{
+    using Table = Opm::SparseTable<unsigned>;
+    using DataType = unsigned;
+    static constexpr int from = 1;
+    SparseTableDataHandle2(const Table& global,
+                          const LevelGlobalIdSet& globalIds,
+                          Table& local,
+                          const std::map<int,int>& global2Local)
+        : global_(global), globalIds_(globalIds), local_(local), global2Local_(global2Local)
+    {}
+    bool fixedSize(int, int)
+    {
+        return false;
+    }
+    bool contains(std::size_t dim, std::size_t codim)
+    {
+        return dim==3 && codim == from;
+    }
+    template<class T>
+    std::size_t size(const T& t)
+    {
+        return global_.rowSize(t.index());
+    }
+    template<class B, class T>
+    void gather(B& buffer, const T& t)
+    {
+        const auto& entries = global_[t.index()];
+        std::for_each(entries.begin(), entries.end(), [&buffer, this](const DataType& i){buffer.write(globalIds_.id(EntityRep<3>(i, true)));});
+    }
+    template<class B, class T>
+    void scatter(B& buffer, const T& t, std::size_t )
+    {
+        const auto& entries = local_[t.index()];
+        for (auto&& point : entries)
+        {
+            unsigned i{};
             buffer.read(i);
             if ( point != std::numeric_limits<int>::max() )
             {
@@ -1251,13 +1321,14 @@ void computeFace2Point(CpGrid& grid,
                        const OrientedEntityTable<0, 1>& globalCell2Faces,
                        const LevelGlobalIdSet& globalIds,
                        const OrientedEntityTable<0, 1>& cell2Faces,
-                       const Opm::SparseTable<int>& globalFace2Points,
-                       Opm::SparseTable<int>& face2Points,
+                       const Opm::SparseTable<unsigned>& globalFace2Points,
+                       Opm::SparseTable<unsigned>& face2Points,
                        const std::map<int,int>& global2local,
                        std::size_t noFaces)
 {
     std::vector<int> rowSizes(noFaces);
-    using EntityTable = SparseTableEntity<1>;
+    //globalFace2Points_unsigned = try after 
+    using EntityTable = SparseTableEntity2<1>;
     using RowSizeDataHandle = RowSizeDataHandle<EntityTable, 1>;
     EntityTable wrappedGlobal(globalFace2Points);
     RowSizeDataHandle rowSizeHandle(wrappedGlobal, rowSizes);
@@ -1273,8 +1344,8 @@ void computeFace2Point(CpGrid& grid,
             point = std::numeric_limits<int>::max();
         }
     }
-    SparseTableDataHandle handle(globalFace2Points, globalIds, face2Points, global2local);
-    FaceViaCellHandleWrapper<SparseTableDataHandle>
+    SparseTableDataHandle2 handle(globalFace2Points, globalIds, face2Points, global2local);
+    FaceViaCellHandleWrapper<SparseTableDataHandle2>
         wrappedHandle(handle, globalCell2Faces, cell2Faces);
     grid.scatterData(wrappedHandle);
 }
@@ -1440,7 +1511,7 @@ std::map<int,int> computeCell2Point(CpGrid& grid,
                                     const std::vector<std::array<int,8> >& globalCell2Points,
                                     const LevelGlobalIdSet& globalIds,
                                     const OrientedEntityTable<0, 1>& globalCell2Faces,
-                                    const Opm::SparseTable<int>& globalFace2Points,
+                                    const Opm::SparseTable<unsigned>& globalFace2Points,
                                     std::vector<std::array<int,8> >& cell2Points,
                                     std::vector<int>& map2Global,
                                     std::size_t noCells,
@@ -2354,7 +2425,7 @@ CpGridData::refineSingleCell(const std::array<int,3>& cells_per_dim, const int& 
     DefaultGeometryPolicy& refined_geometries = refined_grid.geometry_;
     std::vector<std::array<int,8>>& refined_cell_to_point = refined_grid.cell_to_point_;
     cpgrid::OrientedEntityTable<0,1>& refined_cell_to_face = refined_grid.cell_to_face_;
-    Opm::SparseTable<int>& refined_face_to_point = refined_grid.face_to_point_;
+    Opm::SparseTable<int>& refined_face_to_point = refined_grid.face_to_point_sk;
     cpgrid::OrientedEntityTable<1,0>& refined_face_to_cell = refined_grid.face_to_cell_;
     cpgrid::EntityVariable<enum face_tag,1>& refined_face_tags = refined_grid.face_tag_;
     cpgrid::SignedEntityVariable<Dune::FieldVector<double,3>,1>& refined_face_normals = refined_grid.face_normals_;
@@ -2493,7 +2564,7 @@ CpGridData::refinePatch(const std::array<int,3>& cells_per_dim, const std::array
     DefaultGeometryPolicy& refined_geometries = refined_grid.geometry_;
     std::vector<std::array<int,8>>& refined_cell_to_point = refined_grid.cell_to_point_;
     cpgrid::OrientedEntityTable<0,1>& refined_cell_to_face = refined_grid.cell_to_face_;
-    Opm::SparseTable<int>& refined_face_to_point = refined_grid.face_to_point_;
+    Opm::SparseTable<int>& refined_face_to_point = refined_grid.face_to_point_sk;
     cpgrid::OrientedEntityTable<1,0>& refined_face_to_cell = refined_grid.face_to_cell_;
     cpgrid::EntityVariable<enum face_tag,1>& refined_face_tags = refined_grid.face_tag_;
     cpgrid::SignedEntityVariable<Dune::FieldVector<double,3>,1>& refined_face_normals = refined_grid.face_normals_;
